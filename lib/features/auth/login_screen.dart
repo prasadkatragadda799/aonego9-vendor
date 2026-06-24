@@ -5,6 +5,7 @@ import '../../core/theme/typography.dart';
 import '../../core/responsive/responsive.dart';
 import '../../core/category/vendor_category.dart';
 import '../../core/widgets/common.dart';
+import '../../data/repositories/vendor_repository.dart';
 
 /// Live label → category map so the brand panel re-themes as the vendor
 /// picks their business type (mirrors VendorSession.setFromLabel).
@@ -26,16 +27,34 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _register = false;
   bool _obscure = true;
   bool _loading = false;
+  String _error = '';
   String _category = 'Talent Agency';
   final _email = TextEditingController(text: 'vendor@aonego9.com');
   final _password = TextEditingController(text: 'demo1234');
+  final _company = TextEditingController();
+  final _repo = VendorRepository();
 
   Future<void> _submit() async {
-    setState(() => _loading = true);
-    // The chosen category reshapes the whole console for this session.
-    VendorSession.setFromLabel(_category);
-    await Future.delayed(const Duration(milliseconds: 600)); // TODO: POST /api/vendor/auth/{login|register}
-    if (mounted) context.go('/dashboard');
+    setState(() { _loading = true; _error = ''; });
+    try {
+      VendorSession.setFromLabel(_category);
+      if (_register) {
+        await _repo.register(
+          name: _company.text.trim().isEmpty ? _email.text.split('@').first : _company.text.trim(),
+          company: _company.text.trim(),
+          email: _email.text.trim(),
+          password: _password.text,
+          category: _category,
+        );
+      } else {
+        await _repo.login(_email.text.trim(), _password.text);
+      }
+      if (mounted) context.go('/dashboard');
+    } catch (e) {
+      setState(() { _error = e.toString().replaceFirst('ApiException', '').replaceAll(RegExp(r'^\(\d+\):\s*'), ''); });
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
@@ -44,12 +63,14 @@ class _LoginScreenState extends State<LoginScreen> {
       register: _register,
       email: _email,
       password: _password,
+      company: _company,
       obscure: _obscure,
       loading: _loading,
+      error: _error,
       category: _category,
       onCategory: (v) => setState(() => _category = v),
       onToggleObscure: () => setState(() => _obscure = !_obscure),
-      onSwitch: () => setState(() => _register = !_register),
+      onSwitch: () => setState(() { _register = !_register; _error = ''; }),
       onSubmit: _submit,
     );
     final cfg = categoryConfigs[_catFromLabel(_category)]!;
@@ -133,16 +154,18 @@ class _BrandPanel extends StatelessWidget {
 
 class _AuthForm extends StatelessWidget {
   final bool register, obscure, loading;
-  final TextEditingController email, password;
-  final String category;
+  final TextEditingController email, password, company;
+  final String category, error;
   final ValueChanged<String> onCategory;
   final VoidCallback onToggleObscure, onSwitch, onSubmit;
   const _AuthForm({
     required this.register,
     required this.email,
     required this.password,
+    required this.company,
     required this.obscure,
     required this.loading,
+    required this.error,
     required this.category,
     required this.onCategory,
     required this.onToggleObscure,
@@ -157,9 +180,17 @@ class _AuthForm extends StatelessWidget {
       const SizedBox(height: 6),
       Text(register ? 'Start listing your services in minutes' : 'Welcome back to your vendor console', style: const TextStyle(color: AppColors.textSecondary)),
       const SizedBox(height: 28),
+      if (error.isNotEmpty) ...[
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.red.withValues(alpha: 0.3))),
+          child: Text(error, style: const TextStyle(color: Colors.red, fontSize: 13)),
+        ),
+      ],
       if (register) ...[
         const _Label('Business name'),
-        const TextField(decoration: InputDecoration(hintText: 'e.g. Spotlight Talent Co.')),
+        TextField(controller: company, decoration: const InputDecoration(hintText: 'e.g. Spotlight Talent Co.')),
         const SizedBox(height: 16),
       ],
       const _Label('Email'),
