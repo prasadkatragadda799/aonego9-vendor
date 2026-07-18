@@ -77,7 +77,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                     ]),
                     const SizedBox(height: 12),
                     Row(children: [
-                      OutlinedButton.icon(onPressed: _openEditor, icon: const Icon(Icons.edit_outlined, size: 16), label: const Text('Edit')),
+                      OutlinedButton.icon(onPressed: () => _openEditor(p), icon: const Icon(Icons.edit_outlined, size: 16), label: const Text('Edit')),
                       const SizedBox(width: 10),
                       if (!p.active) const StatusChip(label: 'Hidden', color: AppColors.textMuted),
                     ]),
@@ -89,7 +89,13 @@ class _ServicesScreenState extends State<ServicesScreen> {
     );
   }
 
-  void _openEditor() {
+  void _openEditor([ServicePackage? existing]) {
+    final title = TextEditingController(text: existing?.title ?? '');
+    final category = TextEditingController(text: existing?.category ?? VendorSession.config.serviceCategoryHint);
+    final price = TextEditingController(text: existing != null ? existing.price.toStringAsFixed(0) : '');
+    final unit = TextEditingController(text: existing?.unit ?? VendorSession.config.serviceUnitHint);
+    final desc = TextEditingController(text: existing?.description ?? '');
+
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
@@ -97,23 +103,173 @@ class _ServicesScreenState extends State<ServicesScreen> {
       showDragHandle: true,
       constraints: BoxConstraints(maxWidth: Responsive.isMobile(context) ? double.infinity : 520),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(24, 0, 24, MediaQuery.viewInsetsOf(ctx).bottom + 28),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Package details', style: Theme.of(ctx).textTheme.titleLarge),
-          const SizedBox(height: 20),
-          const _Field(label: 'Title', hint: 'e.g. Fashion Editorial — Half Day'),
-          _Field(label: 'Category', hint: VendorSession.config.serviceCategoryHint),
-          Row(children: [
-            const Expanded(child: _Field(label: 'Price (₹)', hint: '45000')),
-            const SizedBox(width: 12),
-            Expanded(child: _Field(label: 'Unit', hint: VendorSession.config.serviceUnitHint)),
-          ]),
-          const _Field(label: 'Description', hint: 'What is included…', lines: 3),
-          const SizedBox(height: 12),
-          SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => Navigator.pop(ctx), child: const Text('Save Package'))),
-        ]),
+      builder: (ctx) => _PackageForm(
+        existing: existing,
+        title: title,
+        category: category,
+        price: price,
+        unit: unit,
+        desc: desc,
+        onSave: (pkg) async {
+          Navigator.pop(ctx);
+          if (existing != null) {
+            await _repo.updateService(pkg);
+          } else {
+            await _repo.createService(pkg);
+          }
+          await _load();
+        },
+        onDelete: existing != null
+            ? (id) async {
+                await _repo.deleteService(id);
+                await _load();
+              }
+            : null,
       ),
+    );
+  }
+}
+
+class _PackageForm extends StatefulWidget {
+  final ServicePackage? existing;
+  final TextEditingController title, category, price, unit, desc;
+  final Future<void> Function(ServicePackage) onSave;
+  final Future<void> Function(String id)? onDelete;
+
+  const _PackageForm({
+    required this.existing,
+    required this.title,
+    required this.category,
+    required this.price,
+    required this.unit,
+    required this.desc,
+    required this.onSave,
+    this.onDelete,
+  });
+
+  @override
+  State<_PackageForm> createState() => _PackageFormState();
+}
+
+class _PackageFormState extends State<_PackageForm> {
+  bool _saving = false;
+  bool _deleting = false;
+  String _error = '';
+
+  Future<void> _delete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1F),
+        title: const Text('Delete package?'),
+        content: Text('This will permanently remove "${widget.title.text}" and cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    setState(() { _deleting = true; _error = ''; });
+    try {
+      await widget.onDelete!(widget.existing!.id);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      setState(() {
+        _error = e.toString().replaceFirst('ApiException', '').replaceAll(RegExp(r'^\(\d+\):\s*'), '');
+        _deleting = false;
+      });
+    }
+  }
+
+  Future<void> _submit() async {
+    final titleVal = widget.title.text.trim();
+    final priceVal = double.tryParse(widget.price.text.trim()) ?? -1;
+
+    if (titleVal.isEmpty) { setState(() => _error = 'Title is required'); return; }
+    if (priceVal < 0) { setState(() => _error = 'Enter a valid price'); return; }
+
+    setState(() { _saving = true; _error = ''; });
+    try {
+      final pkg = ServicePackage(
+        id: widget.existing?.id ?? '',
+        title: titleVal,
+        category: widget.category.text.trim(),
+        price: priceVal,
+        unit: widget.unit.text.trim(),
+        description: widget.desc.text.trim(),
+        active: widget.existing?.active ?? true,
+        bookingsCount: widget.existing?.bookingsCount ?? 0,
+      );
+      await widget.onSave(pkg);
+    } catch (e) {
+      setState(() {
+        _error = e.toString().replaceFirst('ApiException', '').replaceAll(RegExp(r'^\(\d+\):\s*'), '');
+        _saving = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(24, 0, 24, MediaQuery.viewInsetsOf(context).bottom + 28),
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(widget.existing != null ? 'Edit package' : 'New package',
+            style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 20),
+        if (_error.isNotEmpty) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            margin: const EdgeInsets.only(bottom: 14),
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+            ),
+            child: Text(_error, style: const TextStyle(color: Colors.red, fontSize: 13)),
+          ),
+        ],
+        _Field(label: 'Title', hint: 'e.g. Fashion Editorial — Half Day', controller: widget.title),
+        _Field(label: 'Category', hint: VendorSession.config.serviceCategoryHint, controller: widget.category),
+        Row(children: [
+          Expanded(child: _Field(label: 'Price (₹)', hint: '45000', controller: widget.price, keyboardType: TextInputType.number)),
+          const SizedBox(width: 12),
+          Expanded(child: _Field(label: 'Unit', hint: VendorSession.config.serviceUnitHint, controller: widget.unit)),
+        ]),
+        _Field(label: 'Description', hint: 'What is included…', controller: widget.desc, lines: 3),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: (_saving || _deleting) ? null : _submit,
+            child: _saving
+                ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1A1407)))
+                : Text(widget.existing != null ? 'Update Package' : 'Save Package'),
+          ),
+        ),
+        if (widget.existing != null && widget.onDelete != null) ...[
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: (_saving || _deleting) ? null : _delete,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red,
+                side: BorderSide(color: Colors.red.withValues(alpha: 0.4)),
+              ),
+              icon: _deleting
+                  ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red))
+                  : const Icon(Icons.delete_outline, size: 18),
+              label: const Text('Delete Package'),
+            ),
+          ),
+        ],
+      ]),
     );
   }
 }
@@ -121,7 +277,17 @@ class _ServicesScreenState extends State<ServicesScreen> {
 class _Field extends StatelessWidget {
   final String label, hint;
   final int lines;
-  const _Field({required this.label, required this.hint, this.lines = 1});
+  final TextEditingController controller;
+  final TextInputType keyboardType;
+
+  const _Field({
+    required this.label,
+    required this.hint,
+    required this.controller,
+    this.lines = 1,
+    this.keyboardType = TextInputType.text,
+  });
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -129,7 +295,12 @@ class _Field extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
         const SizedBox(height: 8),
-        TextField(maxLines: lines, decoration: InputDecoration(hintText: hint)),
+        TextField(
+          controller: controller,
+          maxLines: lines,
+          keyboardType: keyboardType,
+          decoration: InputDecoration(hintText: hint),
+        ),
       ]),
     );
   }

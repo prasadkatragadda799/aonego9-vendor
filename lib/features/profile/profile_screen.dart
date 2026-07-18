@@ -4,6 +4,7 @@ import '../../core/theme/typography.dart';
 import '../../core/responsive/responsive.dart';
 import '../../core/category/vendor_category.dart';
 import '../../core/widgets/common.dart';
+import '../../data/repositories/vendor_repository.dart';
 
 /// One portfolio work — mirrors the consumer app's gallery item shape
 /// (a cover, a category tag, a headline, and a description underneath).
@@ -31,7 +32,79 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final _repo = VendorRepository();
   late List<PortfolioWork> _works = _seedFor(VendorSession.category);
+
+  bool _loading = true;
+  bool _saving = false;
+  String _error = '';
+
+  final _nameCtrl = TextEditingController();
+  final _companyCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _cityCtrl = TextEditingController();
+  final _bioCtrl = TextEditingController();
+  String _email = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _companyCtrl.dispose();
+    _phoneCtrl.dispose();
+    _cityCtrl.dispose();
+    _bioCtrl.dispose();
+    super.dispose();
+  }
+
+  String _friendlyError(Object e) =>
+      e.toString().replaceFirst('ApiException', '').replaceAll(RegExp(r'^\(\d+\):\s*'), '');
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = ''; });
+    try {
+      final data = await _repo.myProfile();
+      if (!mounted) return;
+      setState(() {
+        _nameCtrl.text = (data['name'] ?? '') as String;
+        _companyCtrl.text = (data['company'] ?? '') as String;
+        _email = (data['email'] ?? '') as String;
+        _phoneCtrl.text = (data['phone'] ?? '') as String;
+        _cityCtrl.text = (data['city'] ?? '') as String;
+        _bioCtrl.text = (data['bio'] ?? '') as String;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _error = _friendlyError(e); _loading = false; });
+    }
+  }
+
+  Future<void> _save() async {
+    setState(() { _saving = true; _error = ''; });
+    try {
+      await _repo.updateProfile({
+        'name': _nameCtrl.text.trim(),
+        'company': _companyCtrl.text.trim(),
+        'phone': _phoneCtrl.text.trim(),
+        'city': _cityCtrl.text.trim(),
+        'bio': _bioCtrl.text.trim(),
+      });
+      if (!mounted) return;
+      setState(() => _saving = false);
+      _toast('Profile saved');
+    } catch (e) {
+      if (!mounted) return;
+      final msg = _friendlyError(e);
+      setState(() { _error = msg; _saving = false; });
+      _toast(msg.isEmpty ? 'Failed to save profile' : msg);
+    }
+  }
 
   // Category-specific starter portfolio so every vendor type sees relevant
   // sample work to edit. These are exactly the fields the user app renders.
@@ -78,6 +151,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final cfg = VendorSession.config;
+    if (_loading) return const LoadingView();
     return ListView(
       padding: EdgeInsets.all(responsiveValue(context, mobile: 16, desktop: 28)),
       children: [
@@ -87,9 +161,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
             accent: cfg.accent,
             title: 'Profile & Portfolio',
             subtitle: 'Everything here is exactly how clients see you on the marketplace',
-            actions: [ElevatedButton.icon(onPressed: () => _toast('Profile saved'), icon: const Icon(Icons.save_outlined, size: 18), label: const Text('Save Changes'))],
+            actions: [
+              ElevatedButton.icon(
+                onPressed: _saving ? null : _save,
+                icon: _saving
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1A1407)))
+                    : const Icon(Icons.save_outlined, size: 18),
+                label: Text(_saving ? 'Saving…' : 'Save Changes'),
+              ),
+            ],
           ),
         ),
+        if (_error.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.danger.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.danger.withValues(alpha: 0.4)),
+            ),
+            child: Row(children: [
+              const Icon(Icons.error_outline, size: 16, color: AppColors.danger),
+              const SizedBox(width: 8),
+              Expanded(child: Text(_error, style: AppType.body(size: 12.5, color: AppColors.danger))),
+            ]),
+          ),
+        ],
         const SizedBox(height: 22),
         FadeUp(delay: const Duration(milliseconds: 90), child: _performanceStrip(cfg)),
         const SizedBox(height: 16),
@@ -163,6 +261,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  String get _displayName => _companyCtrl.text.trim().isNotEmpty ? _companyCtrl.text.trim() : 'Your business';
+
   Widget _profileCard(BuildContext context, VendorCategoryConfig cfg) {
     return SectionCard(
       title: 'Business Profile',
@@ -170,7 +270,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Center(
           child: Column(children: [
             Stack(children: [
-              const InitialsAvatar(name: 'Spotlight Talent', size: 84),
+              InitialsAvatar(name: _displayName, size: 84),
               Positioned(
                 right: 0, bottom: 0,
                 child: Container(
@@ -181,19 +281,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ]),
             const SizedBox(height: 12),
-            Text('Spotlight Talent Co.', style: AppType.display(size: 17, weight: FontWeight.w600)),
+            Text(_displayName, style: AppType.display(size: 17, weight: FontWeight.w600)),
             Text(cfg.profileType, style: AppType.body(color: AppColors.textMuted, size: 13)),
             const SizedBox(height: 8),
             const StatusChip(label: 'KYC Verified', color: AppColors.success),
           ]),
         ),
         const Divider(height: 32),
-        const _Field(label: 'Business name', value: 'Spotlight Talent Co.'),
-        const _Field(label: 'Contact email', value: 'aisha@spotlight.in'),
-        const _Field(label: 'Phone', value: '+91 99300 44556'),
-        const _Field(label: 'City', value: 'Delhi'),
-        for (final f in cfg.profileFields) _Field(label: f.key, value: f.value),
-        const _Field(label: 'About', value: 'Premium talent agency representing editorial and runway models across India.', lines: 3),
+        _Field(label: 'Contact name', controller: _nameCtrl),
+        _Field(label: 'Business name', controller: _companyCtrl),
+        _Field(label: 'Contact email', value: _email, enabled: false),
+        _Field(label: 'Phone', controller: _phoneCtrl),
+        _Field(label: 'City', controller: _cityCtrl),
+        for (final f in cfg.profileFields) _Field(label: f.key, value: f.value, enabled: false),
+        _Field(label: 'About', controller: _bioCtrl, lines: 3),
       ]),
     );
   }
@@ -226,7 +327,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.all(14),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
-                  Expanded(child: Text('Spotlight Talent Co.', style: AppType.display(size: 16, weight: FontWeight.w600))),
+                  Expanded(child: Text(_displayName, style: AppType.display(size: 16, weight: FontWeight.w600))),
                   const Icon(Icons.verified, size: 16, color: AppColors.gold),
                 ]),
                 const SizedBox(height: 3),
@@ -487,9 +588,13 @@ class DottedPanel extends StatelessWidget {
 }
 
 class _Field extends StatelessWidget {
-  final String label, value;
+  final String label;
+  final String? value;
+  final TextEditingController? controller;
   final int lines;
-  const _Field({required this.label, required this.value, this.lines = 1});
+  final bool enabled;
+  const _Field({required this.label, this.value, this.controller, this.lines = 1, this.enabled = true})
+      : assert(value != null || controller != null, 'Provide either a static value or a controller');
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -497,7 +602,11 @@ class _Field extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(label, style: AppType.body(weight: FontWeight.w600, size: 13)),
         const SizedBox(height: 8),
-        TextField(controller: TextEditingController(text: value), maxLines: lines),
+        TextField(
+          controller: controller ?? TextEditingController(text: value),
+          maxLines: lines,
+          enabled: enabled,
+        ),
       ]),
     );
   }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/responsive/responsive.dart';
 import '../../core/widgets/common.dart';
+import '../../data/repositories/vendor_repository.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -10,6 +12,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  final _repo = VendorRepository();
   bool _bookingAlerts = true;
   bool _payoutAlerts = true;
   bool _marketing = false;
@@ -79,9 +82,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _link('Change password', Icons.lock_outline),
         _link('Linked bank account', Icons.account_balance_outlined),
         _link('Help & support', Icons.help_outline),
-        _link('Log out', Icons.logout, color: AppColors.danger),
+        _link('Log out', Icons.logout, color: AppColors.danger, onTap: _logout),
       ]),
     );
+  }
+
+  Future<void> _logout() async {
+    await _repo.logout();
+    if (mounted) context.go('/login');
   }
 
   Widget _toggle(String title, String sub, bool value, ValueChanged<bool> onChanged) {
@@ -97,10 +105,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _link(String title, IconData icon, {Color? color}) {
+  Widget _link(String title, IconData icon, {Color? color, VoidCallback? onTap}) {
     return InkWell(
       borderRadius: BorderRadius.circular(8),
-      onTap: () {},
+      onTap: onTap ?? () {},
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(children: [

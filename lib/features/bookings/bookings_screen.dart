@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/responsive/responsive.dart';
@@ -112,7 +113,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                   ] else if (b.status == BookingStatus.confirmed) ...[
                     const SizedBox(height: 14),
                     Row(children: [
-                      OutlinedButton.icon(onPressed: () {}, icon: const Icon(Icons.chat_bubble_outline, size: 16), label: const Text('Message client')),
+                      OutlinedButton.icon(onPressed: () => context.go('/messages'), icon: const Icon(Icons.chat_bubble_outline, size: 16), label: const Text('Message client')),
                       const SizedBox(width: 10),
                       OutlinedButton(onPressed: () => _respond(b, BookingStatus.inProgress), child: const Text('Mark in progress')),
                     ]),

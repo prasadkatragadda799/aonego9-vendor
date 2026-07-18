@@ -49,6 +49,11 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         await _repo.login(_email.text.trim(), _password.text);
       }
+      try {
+        VendorSession.setVendorFromProfile(await _repo.myProfile());
+      } catch (_) {
+        // non-blocking — the shell falls back to the default label
+      }
       if (mounted) context.go('/dashboard');
     } catch (e) {
       setState(() { _error = e.toString().replaceFirst('ApiException', '').replaceAll(RegExp(r'^\(\d+\):\s*'), ''); });

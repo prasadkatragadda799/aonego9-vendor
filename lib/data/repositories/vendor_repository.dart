@@ -182,14 +182,12 @@ class VendorRepository {
 
   // ── Analytics ─────────────────────────────────────────────────
 
-  // earnings trend from dashboard
+  // GET /api/v1/analytics/vendor/earnings-trend
   Future<List<KpiPoint>> earningsTrend() async {
-    final data = await ApiClient.get('/analytics/vendor/dashboard');
-    // Return stub trend — replace with a dedicated /analytics/vendor/earnings-trend endpoint
-    return const [
-      KpiPoint('Jan', 2.1), KpiPoint('Feb', 2.8), KpiPoint('Mar', 2.5),
-      KpiPoint('Apr', 3.4), KpiPoint('May', 3.9), KpiPoint('Jun', 4.6),
-    ];
+    final data = await ApiClient.get('/analytics/vendor/earnings-trend') as Map;
+    return (data['points'] as List)
+        .map((j) => KpiPoint(j['label'] as String, (j['value'] as num).toDouble()))
+        .toList();
   }
 
   // ── Subscription ─────────────────────────────────────────────
@@ -232,11 +230,16 @@ class VendorRepository {
   // ── Vendor profile ────────────────────────────────────────────
 
   // GET /api/v1/vendors/me
-  Future<Map<String, dynamic>> myProfile() => ApiClient.get('/vendors/me');
+  Future<Map<String, dynamic>> myProfile() async {
+    final data = await ApiClient.get('/vendors/me');
+    return data as Map<String, dynamic>;
+  }
 
   // PUT /api/v1/vendors/me
-  Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> fields) =>
-      ApiClient.put('/vendors/me', fields);
+  Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> fields) async {
+    final data = await ApiClient.put('/vendors/me', fields);
+    return data as Map<String, dynamic>;
+  }
 
   // ── Private helpers ───────────────────────────────────────────
 

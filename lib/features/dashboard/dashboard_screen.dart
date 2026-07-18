@@ -63,7 +63,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: PageHeader(
             eyebrow: cfg.label,
             accent: cfg.accent,
-            title: 'Welcome back, Spotlight 👋',
+            title: 'Welcome back, ${VendorSession.vendorName.split(' ').first} 👋',
             subtitle: DateFormat('EEEE, d MMMM yyyy').format(DateTime(2026, 6, 16)),
             actions: [ElevatedButton.icon(onPressed: () => context.go('/services'), icon: const Icon(Icons.add, size: 18), label: const Text('New Service'))],
           ),

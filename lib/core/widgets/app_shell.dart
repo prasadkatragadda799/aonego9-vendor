@@ -6,6 +6,7 @@ import '../responsive/responsive.dart';
 import '../routing/nav_items.dart';
 import '../category/vendor_category.dart';
 import '../widgets/common.dart';
+import '../../data/repositories/vendor_repository.dart';
 
 /// Adaptive vendor shell, themed to the signed-in vendor's category accent:
 /// - Desktop : expanded sidebar
@@ -77,7 +78,7 @@ class _MobileScaffold extends StatelessWidget {
         title: const _BrandMark(compact: true),
         actions: [
           IconButton(onPressed: () => context.go('/notifications'), icon: const Icon(Icons.notifications_none, size: 22)),
-          const Padding(padding: EdgeInsets.only(right: 12), child: InitialsAvatar(name: 'Spotlight Talent', size: 30)),
+          Padding(padding: const EdgeInsets.only(right: 12), child: InitialsAvatar(name: VendorSession.vendorName, size: 30)),
         ],
       ),
       body: AmbientBackground(accent: accent, child: child),
@@ -176,7 +177,10 @@ class _Sidebar extends StatelessWidget {
             accent: cfg.accent,
             expanded: expanded,
             selected: false,
-            onTap: () => context.go('/login'),
+            onTap: () async {
+              await VendorRepository().logout();
+              if (context.mounted) context.go('/login');
+            },
           ),
           const SizedBox(height: 12),
         ],
@@ -280,13 +284,13 @@ class _TopBar extends StatelessWidget {
           const SizedBox(width: 16),
           _iconBtn(Icons.notifications_none, badge: true),
           const SizedBox(width: 16),
-          const InitialsAvatar(name: 'Spotlight Talent', size: 36),
+          InitialsAvatar(name: VendorSession.vendorName, size: 36),
           const SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Spotlight Talent Co.', style: AppType.body(weight: FontWeight.w600, size: 13)),
+              Text(VendorSession.vendorName, style: AppType.body(weight: FontWeight.w600, size: 13)),
               Text(VendorSession.config.profileType, style: AppType.body(color: AppColors.textMuted, size: 11)),
             ],
           ),

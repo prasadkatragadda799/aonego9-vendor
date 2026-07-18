@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/responsive/responsive.dart';
 import '../../core/widgets/common.dart';
@@ -92,19 +93,21 @@ class _EarningsScreenState extends State<EarningsScreen> {
         Row(children: [
           ElevatedButton.icon(onPressed: () => _withdraw(cur, settled), icon: const Icon(Icons.account_balance, size: 18), label: const Text('Withdraw')),
           const SizedBox(width: 12),
-          OutlinedButton.icon(onPressed: () {}, icon: const Icon(Icons.receipt_long_outlined, size: 16), label: const Text('Statements')),
+          OutlinedButton.icon(onPressed: () => context.go('/subscription'), icon: const Icon(Icons.receipt_long_outlined, size: 16), label: const Text('Statements')),
         ]),
       ]),
     );
 
     if (Responsive.isMobile(context)) return content;
-    return Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Expanded(flex: 2, child: content),
-      const SizedBox(width: 16),
-      Expanded(child: StatCard(label: 'Lifetime Earnings', value: cur.format(settled + pending + 510000), icon: Icons.trending_up, color: AppColors.success, delta: '+22%')),
-      const SizedBox(width: 16),
-      Expanded(child: StatCard(label: 'Next Payout', value: '18 Jun', icon: Icons.event_outlined, color: AppColors.info)),
-    ]);
+    return IntrinsicHeight(
+      child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Expanded(flex: 2, child: content),
+        const SizedBox(width: 16),
+        Expanded(child: StatCard(label: 'Lifetime Earnings', value: cur.format(settled + pending + 510000), icon: Icons.trending_up, color: AppColors.success, delta: '+22%')),
+        const SizedBox(width: 16),
+        Expanded(child: StatCard(label: 'Next Payout', value: '18 Jun', icon: Icons.event_outlined, color: AppColors.info)),
+      ]),
+    );
   }
 
   void _withdraw(NumberFormat cur, double balance) {

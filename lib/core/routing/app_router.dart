@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../widgets/app_shell.dart';
+import '../../data/api/api_client.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/dashboard/dashboard_screen.dart';
 import '../../features/bookings/bookings_screen.dart';
@@ -19,6 +20,12 @@ import '../../features/settings/settings_screen.dart';
 /// via a ShellRoute so the navigation persists across pages.
 final appRouter = GoRouter(
   initialLocation: '/login',
+  redirect: (context, state) async {
+    if (state.matchedLocation == '/login') return null;
+    final loggedIn = await ApiClient.isLoggedIn();
+    if (!loggedIn) return '/login';
+    return null;
+  },
   routes: [
     GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
     ShellRoute(

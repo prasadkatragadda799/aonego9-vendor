@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Base URL — change to your deployed backend URL in production.
-const String kBaseUrl = 'http://localhost:8000/api/v1';
+const String kBaseUrl = 'http://localhost:8001/api/v1';
 
 /// Thin HTTP wrapper that attaches the stored JWT to every request,
 /// throws [ApiException] on non-2xx, and decodes JSON automatically.

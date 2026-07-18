@@ -23,9 +23,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   void initState() {
     super.initState();
-    _repo.bookings().then((b) {
-      if (mounted) setState(() { _all = b; _loading = false; });
-    });
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    final b = await _repo.calendarBookings(_month.year, _month.month);
+    if (!mounted) return;
+    setState(() { _all = b; _loading = false; });
+  }
+
+  void _changeMonth(int delta) {
+    setState(() => _month = DateTime(_month.year, _month.month + delta, 1));
+    _load();
   }
 
   List<VendorBooking> _on(DateTime d) =>
@@ -90,8 +100,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
         Row(children: [
           Text(DateFormat('MMMM yyyy').format(_month), style: Theme.of(context).textTheme.titleMedium),
           const Spacer(),
-          IconButton(onPressed: () => setState(() => _month = DateTime(_month.year, _month.month - 1, 1)), icon: const Icon(Icons.chevron_left)),
-          IconButton(onPressed: () => setState(() => _month = DateTime(_month.year, _month.month + 1, 1)), icon: const Icon(Icons.chevron_right)),
+          IconButton(onPressed: () => _changeMonth(-1), icon: const Icon(Icons.chevron_left)),
+          IconButton(onPressed: () => _changeMonth(1), icon: const Icon(Icons.chevron_right)),
         ]),
         const SizedBox(height: 8),
         GridView.count(

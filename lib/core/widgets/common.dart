@@ -398,7 +398,9 @@ class InitialsAvatar extends StatelessWidget {
   const InitialsAvatar({super.key, required this.name, this.size = 38});
 
   String get _initials {
-    final parts = name.trim().split(' ');
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return '?';
+    final parts = trimmed.split(' ').where((p) => p.isNotEmpty).toList();
     if (parts.isEmpty) return '?';
     if (parts.length == 1) return parts.first.characters.first.toUpperCase();
     return (parts.first.characters.first + parts.last.characters.first).toUpperCase();
