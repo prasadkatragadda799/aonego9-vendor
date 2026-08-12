@@ -192,27 +192,49 @@ class VendorRepository {
 
   // ── Subscription ─────────────────────────────────────────────
 
-  // GET /api/v1/subscriptions/plans
+  // GET /api/v1/subscriptions/plans?audience=vendor
   Future<List<SubscriptionPlan>> plans() async {
-    final data = await ApiClient.get('/subscriptions/plans') as List;
+    final data = await ApiClient.get('/subscriptions/plans?audience=vendor') as List;
     return data.map((j) => _planFromJson(j)).toList();
   }
 
-  // GET /api/v1/subscriptions/me
-  Future<VendorSubscription> currentSubscription() async {
-    final data = await ApiClient.get('/subscriptions/me');
-    return VendorSubscription(
-      planId: data['plan_id'],
-      planName: data['plan_name'],
-      price: (data['price'] as num).toDouble(),
-      status: data['status'],
-      renewsOn: DateTime.parse(data['renews_on']),
-    );
+  // GET /api/v1/subscriptions/me — returns null if the vendor has no active
+  // subscription yet (backend responds 404 in that case).
+  Future<VendorSubscription?> currentSubscription() async {
+    try {
+      final data = await ApiClient.get('/subscriptions/me');
+      return VendorSubscription(
+        planId: data['plan_id'],
+        planName: data['plan_name'],
+        price: (data['price'] as num).toDouble(),
+        status: data['status'],
+        renewsOn: DateTime.parse(data['renews_on']),
+      );
+    } on ApiException catch (e) {
+      if (e.statusCode == 404) return null;
+      rethrow;
+    }
   }
 
-  // POST /api/v1/subscriptions/subscribe
-  Future<void> changePlan(String planId) async {
-    await ApiClient.post('/subscriptions/subscribe', {'plan_id': planId, 'payment_method': 'Card'});
+  // GET /api/v1/subscriptions/payment-info
+  Future<PaymentSettings> paymentInfo() async {
+    final data = await ApiClient.get('/subscriptions/payment-info');
+    return PaymentSettings.fromJson(data as Map<String, dynamic>);
+  }
+
+  // POST /api/v1/subscriptions/request
+  Future<SubscriptionRequest> requestSubscription(String planId, String receiptImageBase64) async {
+    final data = await ApiClient.post('/subscriptions/request', {
+      'plan_id': planId,
+      'receipt_image': receiptImageBase64,
+    });
+    return SubscriptionRequest.fromJson(data as Map<String, dynamic>);
+  }
+
+  // GET /api/v1/subscriptions/requests/mine
+  Future<List<SubscriptionRequest>> myRequests() async {
+    final data = await ApiClient.get('/subscriptions/requests/mine') as List;
+    return data.map((j) => SubscriptionRequest.fromJson(j as Map<String, dynamic>)).toList();
   }
 
   // GET /api/v1/subscriptions/billing
@@ -238,6 +260,47 @@ class VendorRepository {
   // PUT /api/v1/vendors/me
   Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> fields) async {
     final data = await ApiClient.put('/vendors/me', fields);
+    return data as Map<String, dynamic>;
+  }
+
+  // ── Portfolio ─────────────────────────────────────────────────
+
+  // GET /api/v1/vendors/me/portfolio
+  Future<List<Map<String, dynamic>>> portfolio() async {
+    final data = await ApiClient.get('/vendors/me/portfolio') as List;
+    return data.cast<Map<String, dynamic>>();
+  }
+
+  // POST /api/v1/vendors/me/portfolio
+  Future<Map<String, dynamic>> createPortfolioItem(Map<String, dynamic> item) async {
+    final data = await ApiClient.post('/vendors/me/portfolio', item);
+    return data as Map<String, dynamic>;
+  }
+
+  // PUT /api/v1/vendors/me/portfolio/{id}
+  Future<Map<String, dynamic>> updatePortfolioItem(String id, Map<String, dynamic> item) async {
+    final data = await ApiClient.put('/vendors/me/portfolio/$id', item);
+    return data as Map<String, dynamic>;
+  }
+
+  // PATCH /api/v1/vendors/me/portfolio/{id}/feature
+  Future<Map<String, dynamic>> togglePortfolioFeature(String id) async {
+    final data = await ApiClient.patch('/vendors/me/portfolio/$id/feature');
+    return data as Map<String, dynamic>;
+  }
+
+  // DELETE /api/v1/vendors/me/portfolio/{id}
+  Future<void> deletePortfolioItem(String id) => ApiClient.delete('/vendors/me/portfolio/$id');
+
+  // ── Profile details ─────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> profileDetails() async {
+    final data = await ApiClient.get('/vendors/me/profile-details');
+    return data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> updateProfileDetails(Map<String, dynamic> body) async {
+    final data = await ApiClient.put('/vendors/me/profile-details', body);
     return data as Map<String, dynamic>;
   }
 
@@ -287,5 +350,6 @@ class VendorRepository {
         period: j['period'],
         features: (j['features'] as List).cast<String>(),
         recommended: j['recommended'] ?? false,
+        audience: j['audience'] ?? 'vendor',
       );
 }

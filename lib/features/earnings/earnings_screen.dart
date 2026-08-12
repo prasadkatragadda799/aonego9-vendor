@@ -103,9 +103,9 @@ class _EarningsScreenState extends State<EarningsScreen> {
       child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Expanded(flex: 2, child: content),
         const SizedBox(width: 16),
-        Expanded(child: StatCard(label: 'Lifetime Earnings', value: cur.format(settled + pending + 510000), icon: Icons.trending_up, color: AppColors.success, delta: '+22%')),
+        Expanded(child: StatCard(label: 'Lifetime Earnings', value: cur.format(settled + pending), icon: Icons.trending_up, color: AppColors.success)),
         const SizedBox(width: 16),
-        Expanded(child: StatCard(label: 'Next Payout', value: '18 Jun', icon: Icons.event_outlined, color: AppColors.info)),
+        Expanded(child: StatCard(label: 'Pending Settlement', value: cur.format(pending), icon: Icons.event_outlined, color: AppColors.info)),
       ]),
     );
   }
@@ -116,7 +116,7 @@ class _EarningsScreenState extends State<EarningsScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         title: const Text('Withdraw funds'),
-        content: Text('Transfer ${cur.format(balance)} to your linked bank account ••4521?'),
+        content: Text('Transfer ${cur.format(balance)} to your linked bank account?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(onPressed: () { Navigator.pop(ctx); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Withdrawal initiated'), backgroundColor: AppColors.surfaceAlt)); }, child: const Text('Confirm')),

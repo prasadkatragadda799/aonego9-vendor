@@ -16,13 +16,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _bookingAlerts = true;
   bool _payoutAlerts = true;
   bool _marketing = false;
+  bool _kycVerified = false;
+  bool _loadingKyc = true;
 
-  final _docs = const [
-    ('PAN Card', 'Verified', AppColors.success),
-    ('GST Certificate', 'Verified', AppColors.success),
-    ('Bank Account ••4521', 'Verified', AppColors.success),
-    ('Business Registration', 'Pending review', AppColors.warning),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadKyc();
+  }
+
+  Future<void> _loadKyc() async {
+    try {
+      final profile = await _repo.myProfile();
+      if (!mounted) return;
+      setState(() {
+        _kycVerified = profile['kyc_verified'] as bool? ?? false;
+        _loadingKyc = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingKyc = false);
+    }
+  }
+
+  List<(String, String, Color)> get _docs => _kycVerified
+      ? const [
+          ('Platform KYC', 'Verified by admin', AppColors.success),
+        ]
+      : const [
+          ('Platform KYC', 'Pending admin review', AppColors.warning),
+        ];
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +70,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       title: 'KYC Documents',
       actions: [OutlinedButton.icon(onPressed: () {}, icon: const Icon(Icons.upload_outlined, size: 16), label: const Text('Upload'))],
       child: Column(children: [
-        for (final d in _docs)
+        if (_loadingKyc)
+          const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Center(child: CircularProgressIndicator(strokeWidth: 2)))
+        else
+          for (final d in _docs)
           Container(
             margin: const EdgeInsets.only(bottom: 10),
             padding: const EdgeInsets.all(14),

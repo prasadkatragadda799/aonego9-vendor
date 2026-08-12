@@ -240,6 +240,8 @@ class VendorSession {
     final company = (profile['company'] as String?)?.trim() ?? '';
     final name = (profile['name'] as String?)?.trim() ?? '';
     vendorName = company.isNotEmpty ? company : (name.isNotEmpty ? name : 'Vendor');
+    final serverCategory = (profile['category'] as String?)?.trim() ?? '';
+    if (serverCategory.isNotEmpty) setFromLabel(serverCategory);
   }
 
   /// Maps the login dropdown label → category.

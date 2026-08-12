@@ -29,16 +29,18 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
   String _error = '';
   String _category = 'Talent Agency';
-  final _email = TextEditingController(text: 'vendor@aonego9.com');
-  final _password = TextEditingController(text: 'demo1234');
+  final _email = TextEditingController();
+  final _password = TextEditingController();
   final _company = TextEditingController();
   final _repo = VendorRepository();
 
   Future<void> _submit() async {
     setState(() { _loading = true; _error = ''; });
     try {
-      VendorSession.setFromLabel(_category);
       if (_register) {
+        // Category is only chosen at signup — the vendor declares their
+        // business type once, here; every later sign-in reads it back
+        // from the server instead of asking again.
         await _repo.register(
           name: _company.text.trim().isEmpty ? _email.text.split('@').first : _company.text.trim(),
           company: _company.text.trim(),
@@ -50,6 +52,8 @@ class _LoginScreenState extends State<LoginScreen> {
         await _repo.login(_email.text.trim(), _password.text);
       }
       try {
+        // Sets VendorSession.category from the server's own record —
+        // the single source of truth for an existing vendor's category.
         VendorSession.setVendorFromProfile(await _repo.myProfile());
       } catch (_) {
         // non-blocking — the shell falls back to the default label
@@ -210,28 +214,30 @@ class _AuthForm extends StatelessWidget {
           suffixIcon: IconButton(icon: Icon(obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 20), onPressed: onToggleObscure),
         ),
       ),
-      const SizedBox(height: 16),
-      _Label(register ? 'Category' : 'Sign in as'),
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(color: AppColors.surfaceAlt, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            isExpanded: true,
-            value: category,
-            dropdownColor: AppColors.surfaceAlt,
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-            items: const [
-              DropdownMenuItem(value: 'Talent Agency', child: Text('Talent Agency')),
-              DropdownMenuItem(value: 'Photography', child: Text('Photography')),
-              DropdownMenuItem(value: 'Videography', child: Text('Videography')),
-              DropdownMenuItem(value: 'Venue', child: Text('Venue')),
-              DropdownMenuItem(value: 'Event Services', child: Text('Event Services')),
-            ],
-            onChanged: (v) { if (v != null) onCategory(v); },
+      if (register) ...[
+        const SizedBox(height: 16),
+        const _Label('Category'),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(color: AppColors.surfaceAlt, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              isExpanded: true,
+              value: category,
+              dropdownColor: AppColors.surfaceAlt,
+              style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+              items: const [
+                DropdownMenuItem(value: 'Talent Agency', child: Text('Talent Agency')),
+                DropdownMenuItem(value: 'Photography', child: Text('Photography')),
+                DropdownMenuItem(value: 'Videography', child: Text('Videography')),
+                DropdownMenuItem(value: 'Venue', child: Text('Venue')),
+                DropdownMenuItem(value: 'Event Services', child: Text('Event Services')),
+              ],
+              onChanged: (v) { if (v != null) onCategory(v); },
+            ),
           ),
         ),
-      ),
+      ],
       const SizedBox(height: 24),
       SizedBox(
         width: double.infinity,

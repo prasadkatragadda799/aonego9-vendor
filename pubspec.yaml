@@ -17,6 +17,8 @@ dependencies:
   google_fonts: ^6.2.1        # Fraunces/Syne editorial type (shared w/ user app)
   http: ^1.2.2
   shared_preferences: ^2.3.3
+  image_picker: ^1.1.2
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_lints: ^4.0.0

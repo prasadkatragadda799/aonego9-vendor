@@ -5,10 +5,12 @@ import '../../core/responsive/responsive.dart';
 import '../../core/category/vendor_category.dart';
 import '../../core/widgets/common.dart';
 import '../../data/repositories/vendor_repository.dart';
+import 'profile_details_section.dart';
 
 /// One portfolio work — mirrors the consumer app's gallery item shape
 /// (a cover, a category tag, a headline, and a description underneath).
 class PortfolioWork {
+  final String? id;
   String headline;
   String description;
   String tag;
@@ -16,6 +18,7 @@ class PortfolioWork {
   int bg;
   bool featured;
   PortfolioWork({
+    this.id,
     required this.headline,
     required this.description,
     required this.tag,
@@ -23,6 +26,25 @@ class PortfolioWork {
     this.bg = 0,
     this.featured = false,
   });
+
+  factory PortfolioWork.fromJson(Map<String, dynamic> j) => PortfolioWork(
+        id: j['id'] as String?,
+        headline: j['headline'] as String? ?? '',
+        description: j['description'] as String? ?? '',
+        tag: j['tag'] as String? ?? '',
+        emoji: j['emoji'] as String? ?? '🖼️',
+        bg: (j['bg'] as num?)?.toInt() ?? 0,
+        featured: j['featured'] as bool? ?? false,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'headline': headline,
+        'description': description,
+        'tag': tag,
+        'emoji': emoji,
+        'bg': bg,
+        'featured': featured,
+      };
 }
 
 class ProfileScreen extends StatefulWidget {
@@ -33,11 +55,16 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _repo = VendorRepository();
-  late List<PortfolioWork> _works = _seedFor(VendorSession.category);
+  List<PortfolioWork> _works = [];
+  Map<String, dynamic> _profileDetails = {};
 
   bool _loading = true;
   bool _saving = false;
   String _error = '';
+  double _rating = 0;
+  int _totalBookings = 0;
+  bool _kycVerified = false;
+  String _plan = 'Starter';
 
   final _nameCtrl = TextEditingController();
   final _companyCtrl = TextEditingController();
@@ -68,7 +95,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _load() async {
     setState(() { _loading = true; _error = ''; });
     try {
-      final data = await _repo.myProfile();
+      final results = await Future.wait([
+        _repo.myProfile(),
+        _repo.portfolio(),
+        _repo.profileDetails(),
+      ]);
+      final data = results[0] as Map<String, dynamic>;
+      final portfolio = results[1] as List<Map<String, dynamic>>;
+      final details = results[2] as Map<String, dynamic>;
       if (!mounted) return;
       setState(() {
         _nameCtrl.text = (data['name'] ?? '') as String;
@@ -77,6 +111,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _phoneCtrl.text = (data['phone'] ?? '') as String;
         _cityCtrl.text = (data['city'] ?? '') as String;
         _bioCtrl.text = (data['bio'] ?? '') as String;
+        _rating = ((data['rating'] as num?) ?? 0).toDouble();
+        _totalBookings = ((data['total_bookings'] as num?) ?? 0).toInt();
+        _kycVerified = data['kyc_verified'] as bool? ?? false;
+        _plan = (data['plan'] ?? 'Starter') as String;
+        _works = portfolio.map(PortfolioWork.fromJson).toList();
+        _profileDetails = details;
         _loading = false;
       });
     } catch (e) {
@@ -106,45 +146,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // Category-specific starter portfolio so every vendor type sees relevant
-  // sample work to edit. These are exactly the fields the user app renders.
-  static List<PortfolioWork> _seedFor(VendorCategory c) {
-    switch (c) {
-      case VendorCategory.photography:
-        return [
-          PortfolioWork(headline: 'Vogue India Editorial', description: 'March 2025 cover story · 8-page fashion editorial shot on Sony A1.', tag: 'Editorial', emoji: '📷', bg: 0, featured: true),
-          PortfolioWork(headline: 'Puma Brand Campaign', description: 'Pan-India print + digital · 3-city outdoor and studio shoot.', tag: 'Commercial', emoji: '🛍️', bg: 1),
-          PortfolioWork(headline: 'Myntra E-commerce', description: '50-product catalogue · white-background + lifestyle edits.', tag: 'Catalogue', emoji: '📦', bg: 2),
-          PortfolioWork(headline: 'Riverside Wedding', description: 'Full-day coverage · 2 shooters · album + 400 edited frames.', tag: 'Wedding', emoji: '💑', bg: 3),
-        ];
-      case VendorCategory.videography:
-        return [
-          PortfolioWork(headline: 'Nike India Brand Film', description: '90-second hero film · RED Komodo · edit, grade and mix.', tag: 'Brand Film', emoji: '🎥', bg: 0, featured: true),
-          PortfolioWork(headline: 'Cinematic Wedding Reel', description: 'Highlight film + full ceremony edit · drone + gimbal coverage.', tag: 'Wedding', emoji: '💒', bg: 1),
-          PortfolioWork(headline: 'Social Reels Bundle', description: '8 vertical reels in a single shoot day · captions + grade.', tag: 'Social', emoji: '📱', bg: 2),
-          PortfolioWork(headline: 'NGO Documentary', description: '6-minute documentary short · run-and-gun field coverage.', tag: 'Documentary', emoji: '🎞️', bg: 3),
-        ];
-      case VendorCategory.venue:
-        return [
-          PortfolioWork(headline: 'The Grand Ballroom', description: 'Up to 600 guests · premium lighting, AV and in-house catering.', tag: 'Banquet', emoji: '🏛️', bg: 0, featured: true),
-          PortfolioWork(headline: 'Skyline Rooftop', description: '270° city views · open-air evenings up to 120 guests.', tag: 'Rooftop', emoji: '🌆', bg: 1),
-          PortfolioWork(headline: 'Heritage Courtyard', description: 'Outdoor heritage setting · weddings and brand showcases.', tag: 'Outdoor', emoji: '🌿', bg: 2),
-          PortfolioWork(headline: 'The Studio Loft', description: 'Indoor studio space · ideal for shoots and intimate events.', tag: 'Studio', emoji: '📸', bg: 3),
-        ];
-      case VendorCategory.events:
-        return [
-          PortfolioWork(headline: 'Lakmé Fashion Show', description: 'Stage, ramp, lighting, sound and full backstage management.', tag: 'Fashion Show', emoji: '👗', bg: 0, featured: true),
-          PortfolioWork(headline: 'Corporate Award Night', description: '500-guest gala · AV, stage, registration and hospitality.', tag: 'Corporate', emoji: '🏆', bg: 1),
-          PortfolioWork(headline: 'Product Launch', description: 'FMCG launch · décor, talent and on-ground coordination.', tag: 'Launch', emoji: '🚀', bg: 2),
-          PortfolioWork(headline: 'Destination Wedding', description: 'End-to-end planning · vendors, décor and on-day crew.', tag: 'Wedding', emoji: '💍', bg: 3),
-        ];
-      case VendorCategory.talent:
-        return [
-          PortfolioWork(headline: 'Lakmé Fashion Week', description: 'Opening runway walk · AW25 collection · lead model.', tag: 'Ramp', emoji: '👠', bg: 0, featured: true),
-          PortfolioWork(headline: 'Puma India Campaign', description: 'National print + digital campaign · 3-city outdoor shoot.', tag: 'Commercial', emoji: '📢', bg: 1),
-          PortfolioWork(headline: 'Banarasi Silk Editorial', description: 'Handloom ethnic campaign for Jaipur Fashion Week.', tag: 'Ethnic', emoji: '🥻', bg: 2),
-          PortfolioWork(headline: "Short Film — 'Monsoon Letters'", description: 'Romantic lead role · independent film · 2024 release.', tag: 'Film', emoji: '🎬', bg: 3),
-        ];
+  Future<void> _toggleFeatured(PortfolioWork work) async {
+    if (work.id == null) return;
+    try {
+      final updated = await _repo.togglePortfolioFeature(work.id!);
+      if (!mounted) return;
+      setState(() {
+        final idx = _works.indexWhere((w) => w.id == work.id);
+        if (idx != -1) _works[idx] = PortfolioWork.fromJson(updated);
+      });
+    } catch (e) {
+      _toast(_friendlyError(e).isEmpty ? 'Failed to update work' : _friendlyError(e));
+    }
+  }
+
+  Future<void> _deleteWork(PortfolioWork work) async {
+    if (work.id == null) {
+      setState(() => _works.remove(work));
+      return;
+    }
+    try {
+      await _repo.deletePortfolioItem(work.id!);
+      if (!mounted) return;
+      setState(() => _works.remove(work));
+      _toast('Work removed from portfolio');
+    } catch (e) {
+      _toast(_friendlyError(e).isEmpty ? 'Failed to delete work' : _friendlyError(e));
     }
   }
 
@@ -200,12 +227,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _marketplacePreview(context, cfg),
               const SizedBox(height: 16),
               _portfolioManager(context, cfg),
+              const SizedBox(height: 16),
+              ProfileDetailsSection(
+                cfg: cfg,
+                initial: _profileDetails,
+                onSave: (payload) async {
+                  final updated = await _repo.updateProfileDetails(payload);
+                  if (!mounted) return;
+                  setState(() => _profileDetails = updated);
+                  _toast('Profile details saved');
+                },
+              ),
             ]),
             desktop: (_) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Expanded(flex: 2, child: Column(children: [
                 _profileCard(context, cfg),
                 const SizedBox(height: 16),
                 _marketplacePreview(context, cfg),
+                const SizedBox(height: 16),
+                ProfileDetailsSection(
+                  cfg: cfg,
+                  initial: _profileDetails,
+                  onSave: (payload) async {
+                    final updated = await _repo.updateProfileDetails(payload);
+                    if (!mounted) return;
+                    setState(() => _profileDetails = updated);
+                    _toast('Profile details saved');
+                  },
+                ),
               ])),
               const SizedBox(width: 16),
               Expanded(flex: 3, child: _portfolioManager(context, cfg)),
@@ -220,14 +269,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(msg)));
 
-  // ── Portfolio performance — the same reach metrics users generate by
-  //    opening and sharing this profile in the consumer app. ──
+  // ── Profile performance — real stats from the vendor account. ──
   Widget _performanceStrip(VendorCategoryConfig cfg) {
     final metrics = [
-      ('Profile views', '12.4K', Icons.visibility_outlined, AppColors.info, '+18%'),
-      ('Total reach', '34.8K', Icons.trending_up, cfg.accent, '+12%'),
-      ('Link shares', '1,290', Icons.ios_share, AppColors.gold, '+7%'),
-      ('Saved by clients', '486', Icons.bookmark_outline, AppColors.success, '+9%'),
+      ('Rating', _rating > 0 ? _rating.toStringAsFixed(1) : '—', Icons.star_outline, AppColors.gold, '$_totalBookings bookings'),
+      ('Total bookings', '$_totalBookings', Icons.event_available_outlined, cfg.accent, _plan),
+      ('Portfolio works', '${_works.length}', Icons.collections_outlined, AppColors.info, '${_works.where((w) => w.featured).length} featured'),
+      ('KYC status', _kycVerified ? 'Verified' : 'Pending', Icons.verified_outlined, _kycVerified ? AppColors.success : AppColors.warning, _plan),
     ];
     final cols = responsiveValue(context, mobile: 2, tablet: 4, desktop: 4);
     return GridView.count(
@@ -284,7 +332,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Text(_displayName, style: AppType.display(size: 17, weight: FontWeight.w600)),
             Text(cfg.profileType, style: AppType.body(color: AppColors.textMuted, size: 13)),
             const SizedBox(height: 8),
-            const StatusChip(label: 'KYC Verified', color: AppColors.success),
+            StatusChip(
+              label: _kycVerified ? 'KYC Verified' : 'KYC Pending',
+              color: _kycVerified ? AppColors.success : AppColors.warning,
+            ),
           ]),
         ),
         const Divider(height: 32),
@@ -336,8 +387,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Row(children: [
                   const Icon(Icons.star, size: 14, color: AppColors.gold),
                   const SizedBox(width: 4),
-                  Text('4.8', style: AppType.body(size: 12.5, weight: FontWeight.w700)),
-                  Text('  ·  132 bookings', style: AppType.body(size: 12, color: AppColors.textMuted)),
+                  Text(_rating > 0 ? _rating.toStringAsFixed(1) : 'New', style: AppType.body(size: 12.5, weight: FontWeight.w700)),
+                  Text('  ·  $_totalBookings bookings', style: AppType.body(size: 12, color: AppColors.textMuted)),
                   const Spacer(),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -419,7 +470,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 visualDensity: VisualDensity.compact,
                 tooltip: w.featured ? 'Featured' : 'Feature this',
                 icon: Icon(w.featured ? Icons.star : Icons.star_border, size: 18, color: w.featured ? AppColors.gold : Colors.white70),
-                onPressed: () => setState(() => w.featured = !w.featured),
+                onPressed: () => _toggleFeatured(w),
               )),
             ]),
           ),
@@ -434,7 +485,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Row(children: [
                 _miniBtn(Icons.edit_outlined, 'Edit', () => _editWork(cfg, w)),
                 const SizedBox(width: 8),
-                _miniBtn(Icons.delete_outline, 'Delete', () => setState(() => _works.remove(w)), danger: true),
+                _miniBtn(Icons.delete_outline, 'Delete', () => _deleteWork(w), danger: true),
               ]),
             ]),
           ),
@@ -531,28 +582,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (headline.text.trim().isEmpty) return;
-                setState(() {
+                final payload = {
+                  'headline': headline.text.trim(),
+                  'description': desc.text.trim(),
+                  'tag': tag.text.trim().isEmpty ? cfg.label : tag.text.trim(),
+                  'emoji': emoji.text.trim().isEmpty ? '🖼️' : emoji.text.trim(),
+                  'featured': featured,
+                };
+                try {
                   if (existing == null) {
-                    _works.add(PortfolioWork(
-                      headline: headline.text.trim(),
-                      description: desc.text.trim(),
-                      tag: tag.text.trim().isEmpty ? cfg.label : tag.text.trim(),
-                      emoji: emoji.text.trim().isEmpty ? '🖼️' : emoji.text.trim(),
-                      featured: featured,
-                    ));
-                  } else {
-                    existing
-                      ..headline = headline.text.trim()
-                      ..description = desc.text.trim()
-                      ..tag = tag.text.trim().isEmpty ? existing.tag : tag.text.trim()
-                      ..emoji = emoji.text.trim().isEmpty ? existing.emoji : emoji.text.trim()
-                      ..featured = featured;
+                    final created = await _repo.createPortfolioItem(payload);
+                    if (!mounted) return;
+                    setState(() => _works.add(PortfolioWork.fromJson(created)));
+                  } else if (existing.id != null) {
+                    final updated = await _repo.updatePortfolioItem(existing.id!, payload);
+                    if (!mounted) return;
+                    setState(() {
+                      final idx = _works.indexWhere((w) => w.id == existing.id);
+                      if (idx != -1) _works[idx] = PortfolioWork.fromJson(updated);
+                    });
                   }
-                });
-                Navigator.pop(ctx);
-                _toast(existing == null ? 'Work added to your portfolio' : 'Work updated');
+                  if (!context.mounted) return;
+                  Navigator.pop(ctx);
+                  _toast(existing == null ? 'Work added to your portfolio' : 'Work updated');
+                } catch (e) {
+                  _toast(_friendlyError(e).isEmpty ? 'Failed to save work' : _friendlyError(e));
+                }
               },
               child: Text(existing == null ? 'Add work' : 'Save'),
             ),

@@ -250,6 +250,7 @@ class SubscriptionPlan {
   final String period; // 'forever' | 'per month'
   final List<String> features;
   final bool recommended;
+  final String audience; // 'vendor' | 'user' | 'both'
   const SubscriptionPlan({
     required this.id,
     required this.name,
@@ -257,6 +258,7 @@ class SubscriptionPlan {
     required this.period,
     required this.features,
     this.recommended = false,
+    this.audience = 'vendor',
   });
 }
 
@@ -282,4 +284,62 @@ class BillingEntry {
   final double amount;
   final String status; // paid, pending, failed
   BillingEntry({required this.id, required this.date, required this.description, required this.amount, required this.status});
+}
+
+/// A vendor's submitted subscription request, awaiting (or reviewed by) admin approval.
+class SubscriptionRequest {
+  final String id;
+  final String requesterType;
+  final String? vendorId;
+  final String? userId;
+  final String planId;
+  final String planName;
+  final double amount;
+  final String receiptImage;
+  final String status; // pending, approved, rejected
+  final String? adminNote;
+  final DateTime createdAt;
+  final DateTime? reviewedAt;
+
+  SubscriptionRequest({
+    required this.id,
+    required this.requesterType,
+    this.vendorId,
+    this.userId,
+    required this.planId,
+    required this.planName,
+    required this.amount,
+    required this.receiptImage,
+    required this.status,
+    this.adminNote,
+    required this.createdAt,
+    this.reviewedAt,
+  });
+
+  factory SubscriptionRequest.fromJson(Map<String, dynamic> j) => SubscriptionRequest(
+        id: j['id'].toString(),
+        requesterType: j['requester_type'] ?? '',
+        vendorId: j['vendor_id']?.toString(),
+        userId: j['user_id']?.toString(),
+        planId: j['plan_id'].toString(),
+        planName: j['plan_name'] ?? '',
+        amount: (j['amount'] ?? 0).toDouble(),
+        receiptImage: j['receipt_image'] ?? '',
+        status: j['status'] ?? 'pending',
+        adminNote: j['admin_note'],
+        createdAt: DateTime.tryParse(j['created_at'] ?? '') ?? DateTime.now(),
+        reviewedAt: j['reviewed_at'] != null ? DateTime.tryParse(j['reviewed_at']) : null,
+      );
+}
+
+/// UPI payment details used to build the QR code for a subscription payment.
+class PaymentSettings {
+  final String upiId;
+  final String payeeName;
+  PaymentSettings({required this.upiId, required this.payeeName});
+
+  factory PaymentSettings.fromJson(Map<String, dynamic> j) => PaymentSettings(
+        upiId: j['upi_id'] ?? '',
+        payeeName: j['payee_name'] ?? '',
+      );
 }

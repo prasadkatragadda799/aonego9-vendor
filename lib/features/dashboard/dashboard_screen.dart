@@ -50,7 +50,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final cfg = VendorSession.config;
 
     final cards = <Widget>[
-      StatCard(label: 'Month Earnings', value: cur.format(_summary!['monthEarnings']), icon: Icons.account_balance_wallet_outlined, color: AppColors.gold, delta: '+22%'),
+      StatCard(label: 'Month Earnings', value: cur.format(_summary!['monthEarnings']), icon: Icons.account_balance_wallet_outlined, color: AppColors.gold),
       StatCard(label: 'Pending Payout', value: cur.format(_summary!['pendingPayout']), icon: Icons.schedule, color: AppColors.warning),
       StatCard(label: 'New Requests', value: '${_summary!['pendingRequests']}', icon: Icons.mark_email_unread_outlined, color: AppColors.info),
       StatCard(label: 'Avg. Rating', value: '${_summary!['rating']} ★', icon: Icons.star_outline, color: AppColors.success),
@@ -64,7 +64,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             eyebrow: cfg.label,
             accent: cfg.accent,
             title: 'Welcome back, ${VendorSession.vendorName.split(' ').first} 👋',
-            subtitle: DateFormat('EEEE, d MMMM yyyy').format(DateTime(2026, 6, 16)),
+            subtitle: DateFormat('EEEE, d MMMM yyyy').format(DateTime.now()),
             actions: [ElevatedButton.icon(onPressed: () => context.go('/services'), icon: const Icon(Icons.add, size: 18), label: const Text('New Service'))],
           ),
         ),
