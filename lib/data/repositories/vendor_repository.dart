@@ -223,10 +223,10 @@ class VendorRepository {
   }
 
   // POST /api/v1/subscriptions/request
-  Future<SubscriptionRequest> requestSubscription(String planId, String receiptImageBase64) async {
+  Future<SubscriptionRequest> requestSubscription(String planId, String receiptImageUrl) async {
     final data = await ApiClient.post('/subscriptions/request', {
       'plan_id': planId,
-      'receipt_image': receiptImageBase64,
+      'receipt_image': receiptImageUrl,
     });
     return SubscriptionRequest.fromJson(data as Map<String, dynamic>);
   }

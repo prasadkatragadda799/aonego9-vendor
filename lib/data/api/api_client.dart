@@ -103,6 +103,22 @@ class ApiClient {
     final res = await http.delete(Uri.parse('$kBaseUrl$path'), headers: await _headers());
     if (res.statusCode >= 300) _decode(res);
   }
+
+  /// POST /api/v1/uploads/image — multipart image upload to Cloudinary via backend.
+  static Future<Map<String, dynamic>> uploadImage({
+    required List<int> bytes,
+    required String filename,
+    String folder = 'misc',
+  }) async {
+    final token = await getAccessToken();
+    final uri = Uri.parse('$kBaseUrl/uploads/image').replace(queryParameters: {'folder': folder});
+    final request = http.MultipartRequest('POST', uri);
+    if (token != null) request.headers['Authorization'] = 'Bearer $token';
+    request.files.add(http.MultipartFile.fromBytes('file', bytes, filename: filename));
+    final streamed = await request.send();
+    final res = await http.Response.fromStream(streamed);
+    return (_decode(res) as Map).cast<String, dynamic>();
+  }
 }
 
 class ApiException implements Exception {

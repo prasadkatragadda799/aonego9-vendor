@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -11,6 +10,7 @@ import '../../core/responsive/responsive.dart';
 import '../../core/widgets/common.dart';
 import '../../data/models/models.dart';
 import '../../data/repositories/vendor_repository.dart';
+import '../../data/upload_service.dart';
 
 /// Subscription & billing — the vendor's plan with AOneGo9.
 ///
@@ -307,7 +307,6 @@ class _PaymentDialog extends StatefulWidget {
 
 class _PaymentDialogState extends State<_PaymentDialog> {
   Uint8List? _imageBytes;
-  String? _receiptDataUri;
   bool _submitting = false;
 
   String get _upiLink {
@@ -317,33 +316,25 @@ class _PaymentDialogState extends State<_PaymentDialog> {
         '&am=${plan.price}&cu=INR&tn=${Uri.encodeComponent('AONEGO9 ${plan.name}')}';
   }
 
-  String _mimeFromPath(String path) {
-    final lower = path.toLowerCase();
-    if (lower.endsWith('.png')) return 'image/png';
-    if (lower.endsWith('.webp')) return 'image/webp';
-    if (lower.endsWith('.heic')) return 'image/heic';
-    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
-    return 'image/jpeg';
-  }
 
   Future<void> _pickReceipt() async {
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
     if (picked == null) return;
     final bytes = await picked.readAsBytes();
-    final mime = _mimeFromPath(picked.path);
-    final dataUri = 'data:$mime;base64,${base64Encode(bytes)}';
     if (!mounted) return;
-    setState(() {
-      _imageBytes = bytes;
-      _receiptDataUri = dataUri;
-    });
+    setState(() => _imageBytes = bytes);
   }
 
   Future<void> _submit() async {
-    if (_receiptDataUri == null || _submitting) return;
+    if (_imageBytes == null || _submitting) return;
     setState(() => _submitting = true);
     try {
-      await widget.repo.requestSubscription(widget.plan.id, _receiptDataUri!);
+      final url = await UploadService.uploadImage(
+        bytes: _imageBytes!,
+        filename: 'receipt.jpg',
+        folder: 'receipts',
+      );
+      await widget.repo.requestSubscription(widget.plan.id, url);
       if (!mounted) return;
       Navigator.pop(context);
       await widget.onSubmitted();
@@ -408,7 +399,7 @@ class _PaymentDialogState extends State<_PaymentDialog> {
       actions: [
         TextButton(onPressed: _submitting ? null : () => Navigator.pop(context), child: const Text('Cancel')),
         ElevatedButton(
-          onPressed: (_receiptDataUri == null || _submitting) ? null : _submit,
+          onPressed: (_imageBytes == null || _submitting) ? null : _submit,
           child: _submitting
               ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
               : const Text('Submit for review'),

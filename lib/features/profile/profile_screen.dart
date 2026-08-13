@@ -1,10 +1,14 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/typography.dart';
 import '../../core/responsive/responsive.dart';
 import '../../core/category/vendor_category.dart';
 import '../../core/widgets/common.dart';
 import '../../data/repositories/vendor_repository.dart';
+import '../../data/upload_service.dart';
 import 'profile_details_section.dart';
 
 /// One portfolio work — mirrors the consumer app's gallery item shape
@@ -15,6 +19,7 @@ class PortfolioWork {
   String description;
   String tag;
   String emoji;
+  String imageUrl;
   int bg;
   bool featured;
   PortfolioWork({
@@ -23,6 +28,7 @@ class PortfolioWork {
     required this.description,
     required this.tag,
     required this.emoji,
+    this.imageUrl = '',
     this.bg = 0,
     this.featured = false,
   });
@@ -33,6 +39,7 @@ class PortfolioWork {
         description: j['description'] as String? ?? '',
         tag: j['tag'] as String? ?? '',
         emoji: j['emoji'] as String? ?? '🖼️',
+        imageUrl: j['image_url'] as String? ?? '',
         bg: (j['bg'] as num?)?.toInt() ?? 0,
         featured: j['featured'] as bool? ?? false,
       );
@@ -42,6 +49,7 @@ class PortfolioWork {
         'description': description,
         'tag': tag,
         'emoji': emoji,
+        'image_url': imageUrl,
         'bg': bg,
         'featured': featured,
       };
@@ -72,6 +80,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _cityCtrl = TextEditingController();
   final _bioCtrl = TextEditingController();
   String _email = '';
+  String _avatarUrl = '';
 
   @override
   void initState() {
@@ -111,6 +120,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _phoneCtrl.text = (data['phone'] ?? '') as String;
         _cityCtrl.text = (data['city'] ?? '') as String;
         _bioCtrl.text = (data['bio'] ?? '') as String;
+        _avatarUrl = (data['avatar_url'] ?? '') as String;
         _rating = ((data['rating'] as num?) ?? 0).toDouble();
         _totalBookings = ((data['total_bookings'] as num?) ?? 0).toInt();
         _kycVerified = data['kyc_verified'] as bool? ?? false;
@@ -134,6 +144,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'phone': _phoneCtrl.text.trim(),
         'city': _cityCtrl.text.trim(),
         'bio': _bioCtrl.text.trim(),
+        'avatar_url': _avatarUrl,
       });
       if (!mounted) return;
       setState(() => _saving = false);
@@ -173,6 +184,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       _toast(_friendlyError(e).isEmpty ? 'Failed to delete work' : _friendlyError(e));
     }
+  }
+
+  Future<void> _pickAvatar() async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (picked == null) return;
+    try {
+      final bytes = await picked.readAsBytes();
+      final url = await UploadService.uploadImage(bytes: bytes, filename: 'avatar.jpg', folder: 'avatars');
+      if (!mounted) return;
+      setState(() => _avatarUrl = url);
+      _toast('Profile photo uploaded — tap Save Changes');
+    } catch (e) {
+      _toast(_friendlyError(e).isEmpty ? 'Photo upload failed' : _friendlyError(e));
+    }
+  }
+
+  Widget _avatarWidget(double size) {
+    if (_avatarUrl.isNotEmpty) {
+      return ClipOval(
+        child: Image.network(
+          _avatarUrl,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => InitialsAvatar(name: _displayName, size: size),
+        ),
+      );
+    }
+    return InitialsAvatar(name: _displayName, size: size);
+  }
+
+  Widget _portfolioCover({required VendorCategoryConfig cfg, PortfolioWork? work, Uint8List? previewBytes, double emojiSize = 38}) {
+    if (previewBytes != null) {
+      return Image.memory(previewBytes, fit: BoxFit.cover, width: double.infinity, height: double.infinity);
+    }
+    final url = work?.imageUrl ?? '';
+    if (url.isNotEmpty) {
+      return Image.network(
+        url,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (_, __, ___) => DecoratedBox(
+          decoration: BoxDecoration(gradient: LinearGradient(colors: [cfg.accent.withValues(alpha: 0.30), AppColors.surfaceAlt])),
+          child: Center(child: Text(work?.emoji ?? '🖼️', style: TextStyle(fontSize: emojiSize))),
+        ),
+      );
+    }
+    return DecoratedBox(
+      decoration: BoxDecoration(gradient: LinearGradient(colors: [cfg.accent.withValues(alpha: 0.30), AppColors.surfaceAlt])),
+      child: Center(child: Text(work?.emoji ?? '🖼️', style: TextStyle(fontSize: emojiSize))),
+    );
   }
 
   @override
@@ -317,17 +380,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Center(
           child: Column(children: [
-            Stack(children: [
-              InitialsAvatar(name: _displayName, size: 84),
-              Positioned(
-                right: 0, bottom: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(color: cfg.accent, shape: BoxShape.circle),
-                  child: const Icon(Icons.camera_alt, size: 14, color: Color(0xFF1A1407)),
+            GestureDetector(
+              onTap: _pickAvatar,
+              child: Stack(children: [
+                _avatarWidget(84),
+                Positioned(
+                  right: 0, bottom: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(color: cfg.accent, shape: BoxShape.circle),
+                    child: const Icon(Icons.camera_alt, size: 14, color: Color(0xFF1A1407)),
+                  ),
                 ),
-              ),
-            ]),
+              ]),
+            ),
             const SizedBox(height: 12),
             Text(_displayName, style: AppType.display(size: 17, weight: FontWeight.w600)),
             Text(cfg.profileType, style: AppType.body(color: AppColors.textMuted, size: 13)),
@@ -455,12 +521,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // Cover
           Expanded(
             child: Stack(fit: StackFit.expand, children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [cfg.accent.withValues(alpha: 0.30), AppColors.surfaceAlt]),
-                ),
-                child: Center(child: Text(w.emoji, style: const TextStyle(fontSize: 38))),
-              ),
+              _portfolioCover(cfg: cfg, work: w),
               Positioned(top: 9, left: 9, child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(color: const Color(0xCC09090B), borderRadius: BorderRadius.circular(20)),
@@ -538,6 +599,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final tag = TextEditingController(text: existing?.tag ?? '');
     final emoji = TextEditingController(text: existing?.emoji ?? cfg.label.characters.first);
     bool featured = existing?.featured ?? false;
+    String imageUrl = existing?.imageUrl ?? '';
+    Uint8List? pickedBytes;
 
     showDialog<void>(
       context: context,
@@ -555,6 +618,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 14),
                 _dlgLabel('Description (shown under the image)'),
                 TextField(controller: desc, maxLines: 3, decoration: const InputDecoration(hintText: 'What the project was, where, and your role…')),
+                const SizedBox(height: 14),
+                _dlgLabel('Cover image'),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: SizedBox(
+                    height: 140,
+                    width: double.infinity,
+                    child: _portfolioCover(cfg: cfg, work: existing, previewBytes: pickedBytes),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
+                    if (picked == null) return;
+                    final bytes = await picked.readAsBytes();
+                    setLocal(() {
+                      pickedBytes = bytes;
+                      imageUrl = '';
+                    });
+                  },
+                  icon: const Icon(Icons.upload_file_outlined, size: 16),
+                  label: Text(pickedBytes != null || imageUrl.isNotEmpty ? 'Change image' : 'Upload image'),
+                ),
                 const SizedBox(height: 14),
                 Row(children: [
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -584,14 +671,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ElevatedButton(
               onPressed: () async {
                 if (headline.text.trim().isEmpty) return;
-                final payload = {
-                  'headline': headline.text.trim(),
-                  'description': desc.text.trim(),
-                  'tag': tag.text.trim().isEmpty ? cfg.label : tag.text.trim(),
-                  'emoji': emoji.text.trim().isEmpty ? '🖼️' : emoji.text.trim(),
-                  'featured': featured,
-                };
                 try {
+                  var finalImageUrl = imageUrl;
+                  if (pickedBytes != null) {
+                    finalImageUrl = await UploadService.uploadImage(
+                      bytes: pickedBytes!,
+                      filename: 'portfolio.jpg',
+                      folder: 'portfolio',
+                    );
+                  }
+                  final payload = {
+                    'headline': headline.text.trim(),
+                    'description': desc.text.trim(),
+                    'tag': tag.text.trim().isEmpty ? cfg.label : tag.text.trim(),
+                    'emoji': emoji.text.trim().isEmpty ? '🖼️' : emoji.text.trim(),
+                    'image_url': finalImageUrl,
+                    'featured': featured,
+                  };
                   if (existing == null) {
                     final created = await _repo.createPortfolioItem(payload);
                     if (!mounted) return;
