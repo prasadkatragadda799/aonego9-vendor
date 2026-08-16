@@ -1,12 +1,14 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/typography.dart';
 import '../../core/responsive/responsive.dart';
 import '../../core/category/vendor_category.dart';
+import '../../core/utils/image_pick_util.dart';
 import '../../core/widgets/common.dart';
+import '../../data/api/api_client.dart';
+import '../../data/api/api_errors.dart';
 import '../../data/repositories/vendor_repository.dart';
 import '../../data/upload_service.dart';
 import 'profile_details_section.dart';
@@ -84,6 +86,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _avatarUrl = '';
   String _serverCategory = '';
   bool _avatarUploading = false;
+  bool _uploadsReady = true;
 
   @override
   void initState() {
@@ -101,8 +104,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  String _friendlyError(Object e) =>
-      e.toString().replaceFirst('ApiException', '').replaceAll(RegExp(r'^\(\d+\):\s*'), '');
+  String _friendlyError(Object e) => friendlyApiError(e);
 
   Future<void> _load() async {
     setState(() { _loading = true; _error = ''; });
@@ -112,11 +114,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _repo.portfolio(),
         _repo.profileDetails(),
         _repo.roster(),
+        ApiClient.uploadsConfigured(),
       ]);
       final data = results[0] as Map<String, dynamic>;
       final portfolio = results[1] as List<Map<String, dynamic>>;
       final details = results[2] as Map<String, dynamic>;
       final roster = results[3] as List;
+      final uploadsReady = results[4] as bool;
       if (!mounted) return;
       setState(() {
         _nameCtrl.text = (data['name'] ?? '') as String;
@@ -134,6 +138,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _works = portfolio.map(PortfolioWork.fromJson).toList();
         _profileDetails = details;
         _rosterCount = roster.length;
+        _uploadsReady = uploadsReady;
         _loading = false;
       });
       VendorSession.setVendorFromProfile(data);
@@ -202,13 +207,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _pickAvatar() async {
     if (_avatarUploading) return;
+    if (!_uploadsReady) {
+      _toast('Image uploads are not configured on the server yet (Cloudinary env vars on Render).');
+      return;
+    }
     try {
-      final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
+      final picked = await pickImageFromGallery();
       if (picked == null) return;
       setState(() => _avatarUploading = true);
-      final bytes = await picked.readAsBytes();
-      final ext = picked.name.toLowerCase().endsWith('.png') ? 'png' : 'jpg';
-      final url = await UploadService.uploadImage(bytes: bytes, filename: 'avatar.$ext', folder: 'avatars');
+      final url = await UploadService.uploadImage(
+        bytes: picked.bytes,
+        filename: 'avatar.${picked.extension}',
+        folder: 'avatars',
+      );
       if (!mounted) return;
       setState(() {
         _avatarUrl = url;
@@ -217,7 +228,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _toast('Photo uploaded — tap Save Changes to keep it');
     } catch (e) {
       if (mounted) setState(() => _avatarUploading = false);
-      _toast(_friendlyError(e).isEmpty ? 'Photo upload failed — check Cloudinary env on backend' : _friendlyError(e));
+      _toast(_friendlyError(e));
     }
   }
 
@@ -296,6 +307,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const Icon(Icons.error_outline, size: 16, color: AppColors.danger),
               const SizedBox(width: 8),
               Expanded(child: Text(_error, style: AppType.body(size: 12.5, color: AppColors.danger))),
+            ]),
+          ),
+        ],
+        if (!_uploadsReady) ...[
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.warning.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.warning.withValues(alpha: 0.45)),
+            ),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Icon(Icons.cloud_off_outlined, size: 16, color: AppColors.warning),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Photo uploads are disabled on the backend. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET on Render, redeploy, then refresh this page.',
+                  style: AppType.body(size: 12.5, color: AppColors.warning, height: 1.45),
+                ),
+              ),
             ]),
           ),
         ],
@@ -700,13 +732,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     bool uploading = false;
 
     Future<void> pickImage(void Function(void Function()) setLocal) async {
-      final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
-      if (picked == null) return;
-      final bytes = await picked.readAsBytes();
-      setLocal(() {
-        pickedBytes = bytes;
-        imageUrl = '';
-      });
+      if (!_uploadsReady) {
+        _toast('Image uploads are not configured on the server yet (Cloudinary env vars on Render).');
+        return;
+      }
+      try {
+        final picked = await pickImageFromGallery();
+        if (picked == null) return;
+        setLocal(() {
+          pickedBytes = picked.bytes;
+          imageUrl = '';
+        });
+      } catch (e) {
+        _toast(_friendlyError(e));
+      }
     }
 
     PortfolioWork? previewWork() {
@@ -802,10 +841,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 try {
                   var finalImageUrl = imageUrl.isNotEmpty ? imageUrl : (existing?.imageUrl ?? '');
                   if (pickedBytes != null) {
-                    final ext = pickedBytes!.length > 8 && pickedBytes![0] == 0x89 ? 'png' : 'jpg';
                     finalImageUrl = await UploadService.uploadImage(
                       bytes: pickedBytes!,
-                      filename: 'portfolio.$ext',
+                      filename: 'portfolio.${pickedBytes![0] == 0x89 ? 'png' : 'jpg'}',
                       folder: 'portfolio',
                     );
                   }
@@ -834,7 +872,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _toast(existing == null ? 'Work added to your portfolio' : 'Work updated');
                 } catch (e) {
                   setLocal(() => uploading = false);
-                  _toast(_friendlyError(e).isEmpty ? 'Save failed — is Cloudinary configured on backend?' : _friendlyError(e));
+                  _toast(_friendlyError(e));
                 }
               },
               child: uploading

@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -11,6 +10,8 @@ import '../../core/widgets/common.dart';
 import '../../data/models/models.dart';
 import '../../data/repositories/vendor_repository.dart';
 import '../../data/upload_service.dart';
+import '../../core/utils/image_pick_util.dart';
+import '../../data/api/api_errors.dart';
 
 /// Subscription & billing — the vendor's plan with AOneGo9.
 ///
@@ -318,11 +319,10 @@ class _PaymentDialogState extends State<_PaymentDialog> {
 
 
   Future<void> _pickReceipt() async {
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
+    final picked = await pickImageFromGallery();
     if (picked == null) return;
-    final bytes = await picked.readAsBytes();
     if (!mounted) return;
-    setState(() => _imageBytes = bytes);
+    setState(() => _imageBytes = picked.bytes);
   }
 
   Future<void> _submit() async {
@@ -346,7 +346,7 @@ class _PaymentDialogState extends State<_PaymentDialog> {
       if (!mounted) return;
       setState(() => _submitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('ApiException', '').replaceAll(RegExp(r'^\(\d+\):\s*'), ''))),
+        SnackBar(content: Text(friendlyApiError(e))),
       );
     }
   }

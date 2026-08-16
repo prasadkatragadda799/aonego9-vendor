@@ -44,6 +44,19 @@ class ApiClient {
 
   static Future<bool> isLoggedIn() async => (await getAccessToken()) != null;
 
+  /// GET /health — whether Cloudinary uploads are enabled on the backend.
+  static Future<bool> uploadsConfigured() async {
+    try {
+      final res = await http.get(Uri.parse(kBaseUrl.replaceFirst('/api/v1', '/health')));
+      if (res.statusCode != 200) return true;
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      if (body.containsKey('uploads')) return body['uploads'] == true;
+      return true;
+    } catch (_) {
+      return true;
+    }
+  }
+
   // ── Request helpers ──────────────────────────────────────────
 
   static Future<Map<String, String>> _headers({bool auth = true}) async {
