@@ -207,13 +207,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _pickAvatar() async {
     if (_avatarUploading) return;
-    if (!_uploadsReady) {
-      _toast('Image uploads are not configured on the server yet (Cloudinary env vars on Render).');
-      return;
-    }
     try {
       final picked = await pickImageFromGallery();
       if (picked == null) return;
+      if (!_uploadsReady) {
+        _toast('Image uploads are not configured on the server yet (Cloudinary env vars on Render).');
+        return;
+      }
+      if (!await ApiClient.isLoggedIn()) {
+        _toast('Session expired — please log in again.');
+        return;
+      }
       setState(() => _avatarUploading = true);
       final url = await UploadService.uploadImage(
         bytes: picked.bytes,
@@ -728,28 +732,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final emoji = TextEditingController(text: existing?.emoji ?? cfg.label.characters.first);
     bool featured = existing?.featured ?? false;
     String imageUrl = existing?.imageUrl ?? '';
-    Uint8List? pickedBytes;
+    PickedImageFile? pickedImage;
     bool uploading = false;
 
     Future<void> pickImage(void Function(void Function()) setLocal) async {
-      if (!_uploadsReady) {
-        _toast('Image uploads are not configured on the server yet (Cloudinary env vars on Render).');
-        return;
-      }
       try {
         final picked = await pickImageFromGallery();
         if (picked == null) return;
         setLocal(() {
-          pickedBytes = picked.bytes;
+          pickedImage = picked;
           imageUrl = '';
         });
+        _toast('Photo selected — tap Save to upload');
       } catch (e) {
-        _toast(_friendlyError(e));
+        _toast(_friendlyError(e).isEmpty ? 'Could not open photo picker' : _friendlyError(e));
       }
     }
 
     PortfolioWork? previewWork() {
-      if (pickedBytes != null) return null;
+      if (pickedImage != null) return null;
       final url = imageUrl.isNotEmpty ? imageUrl : (existing?.imageUrl ?? '');
       if (url.isEmpty) return existing;
       return PortfolioWork(
@@ -761,126 +762,148 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    showDialog<void>(
+    showModalBottomSheet<void>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setLocal) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: AppColors.border)),
-          title: Text(existing == null ? 'Add portfolio work' : 'Edit work', style: AppType.display(size: 20, weight: FontWeight.w600)),
-          content: SizedBox(
-            width: 420,
-            child: SingleChildScrollView(
-              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                _dlgLabel('Cover photo (shown in user app gallery)'),
-                GestureDetector(
-                  onTap: uploading ? null : () => pickImage(setLocal),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: SizedBox(
-                      height: 160,
-                      width: double.infinity,
-                      child: Stack(fit: StackFit.expand, children: [
-                        _portfolioCover(cfg: cfg, work: previewWork(), previewBytes: pickedBytes, emojiSize: 48),
-                        if (pickedBytes == null && (imageUrl.isEmpty && (existing?.imageUrl.isEmpty ?? true)))
-                          Container(
-                            color: Colors.black38,
-                            alignment: Alignment.center,
-                            child: Column(mainAxisSize: MainAxisSize.min, children: [
-                              Icon(Icons.add_photo_alternate_outlined, size: 32, color: cfg.accent),
-                              const SizedBox(height: 8),
-                              Text('Tap to upload photo', style: AppType.body(size: 12, weight: FontWeight.w600, color: Colors.white)),
-                            ]),
-                          ),
-                      ]),
-                    ),
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        side: BorderSide(color: AppColors.border),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+        child: StatefulBuilder(
+        builder: (ctx, setLocal) => SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(99)),
+                ),
+              ),
+              Text(existing == null ? 'Add portfolio work' : 'Edit work', style: AppType.display(size: 20, weight: FontWeight.w600)),
+              const SizedBox(height: 16),
+              _dlgLabel('Cover photo (shown in user app gallery)'),
+              OutlinedButton.icon(
+                onPressed: uploading ? null : () => pickImage(setLocal),
+                icon: uploading
+                    ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: cfg.accent))
+                    : const Icon(Icons.upload_file_outlined, size: 18),
+                label: Text(pickedImage != null || imageUrl.isNotEmpty || (existing?.imageUrl.isNotEmpty ?? false) ? 'Change photo' : 'Upload photo'),
+              ),
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: SizedBox(
+                  height: 160,
+                  width: double.infinity,
+                  child: _portfolioCover(cfg: cfg, work: previewWork(), previewBytes: pickedImage?.bytes, emojiSize: 48),
+                ),
+              ),
+              const SizedBox(height: 14),
+              _dlgLabel('Headline'),
+              TextField(controller: headline, decoration: const InputDecoration(hintText: 'e.g. Vogue India Editorial')),
+              const SizedBox(height: 14),
+              _dlgLabel('Description (shown under the image)'),
+              TextField(controller: desc, maxLines: 3, decoration: const InputDecoration(hintText: 'What the project was, where, and your role…')),
+              const SizedBox(height: 14),
+              Row(children: [
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  _dlgLabel('Category tag'),
+                  TextField(controller: tag, decoration: const InputDecoration(hintText: 'Editorial')),
+                ])),
+                const SizedBox(width: 12),
+                SizedBox(width: 96, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  _dlgLabel('Fallback emoji'),
+                  TextField(controller: emoji, textAlign: TextAlign.center, decoration: const InputDecoration(hintText: '📷')),
+                ])),
+              ]),
+              const SizedBox(height: 8),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                activeColor: cfg.accent,
+                value: featured,
+                onChanged: (v) => setLocal(() => featured = v),
+                title: Text('Feature on profile', style: AppType.body(size: 13, weight: FontWeight.w600)),
+                subtitle: Text('Featured works appear first', style: AppType.body(size: 11, color: AppColors.textMuted)),
+              ),
+              const SizedBox(height: 16),
+              Row(children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: uploading ? null : () => Navigator.pop(ctx),
+                    child: const Text('Cancel'),
                   ),
                 ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: uploading ? null : () => pickImage(setLocal),
-                  icon: const Icon(Icons.upload_file_outlined, size: 16),
-                  label: Text(pickedBytes != null || imageUrl.isNotEmpty || (existing?.imageUrl.isNotEmpty ?? false) ? 'Change photo' : 'Upload photo'),
-                ),
-                const SizedBox(height: 14),
-                _dlgLabel('Headline'),
-                TextField(controller: headline, decoration: const InputDecoration(hintText: 'e.g. Vogue India Editorial')),
-                const SizedBox(height: 14),
-                _dlgLabel('Description (shown under the image)'),
-                TextField(controller: desc, maxLines: 3, decoration: const InputDecoration(hintText: 'What the project was, where, and your role…')),
-                const SizedBox(height: 14),
-                Row(children: [
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    _dlgLabel('Category tag'),
-                    TextField(controller: tag, decoration: const InputDecoration(hintText: 'Editorial')),
-                  ])),
-                  const SizedBox(width: 12),
-                  SizedBox(width: 96, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    _dlgLabel('Fallback emoji'),
-                    TextField(controller: emoji, textAlign: TextAlign.center, decoration: const InputDecoration(hintText: '📷')),
-                  ])),
-                ]),
-                const SizedBox(height: 8),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  activeColor: cfg.accent,
-                  value: featured,
-                  onChanged: (v) => setLocal(() => featured = v),
-                  title: Text('Feature on profile', style: AppType.body(size: 13, weight: FontWeight.w600)),
-                  subtitle: Text('Featured works appear first', style: AppType.body(size: 11, color: AppColors.textMuted)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: uploading ? null : () async {
+                      if (headline.text.trim().isEmpty) {
+                        _toast('Headline is required');
+                        return;
+                      }
+                      if (!_uploadsReady && pickedImage != null) {
+                        _toast('Image uploads are not configured on the server yet (Cloudinary env vars on Render).');
+                        return;
+                      }
+                      if (pickedImage != null && !await ApiClient.isLoggedIn()) {
+                        _toast('Session expired — please log in again.');
+                        return;
+                      }
+                      setLocal(() => uploading = true);
+                      try {
+                        var finalImageUrl = imageUrl.isNotEmpty ? imageUrl : (existing?.imageUrl ?? '');
+                        final selected = pickedImage;
+                        if (selected != null) {
+                          finalImageUrl = await UploadService.uploadImage(
+                            bytes: selected.bytes,
+                            filename: 'portfolio.${selected.extension}',
+                            folder: 'portfolio',
+                          );
+                        }
+                        final payload = {
+                          'headline': headline.text.trim(),
+                          'description': desc.text.trim(),
+                          'tag': tag.text.trim().isEmpty ? cfg.label : tag.text.trim(),
+                          'emoji': emoji.text.trim().isEmpty ? '🖼️' : emoji.text.trim(),
+                          'image_url': finalImageUrl,
+                          'featured': featured,
+                        };
+                        if (existing == null) {
+                          final created = await _repo.createPortfolioItem(payload);
+                          if (!mounted) return;
+                          setState(() => _works.add(PortfolioWork.fromJson(created)));
+                        } else if (existing.id != null) {
+                          final updated = await _repo.updatePortfolioItem(existing.id!, payload);
+                          if (!mounted) return;
+                          setState(() {
+                            final idx = _works.indexWhere((w) => w.id == existing.id);
+                            if (idx != -1) _works[idx] = PortfolioWork.fromJson(updated);
+                          });
+                        }
+                        if (!context.mounted) return;
+                        Navigator.pop(ctx);
+                        _toast(existing == null ? 'Work added to your portfolio' : 'Work updated');
+                      } catch (e) {
+                        setLocal(() => uploading = false);
+                        _toast(_friendlyError(e));
+                      }
+                    },
+                    child: uploading
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1A1407)))
+                        : Text(existing == null ? 'Add work' : 'Save'),
+                  ),
                 ),
               ]),
-            ),
+            ]),
           ),
-          actions: [
-            TextButton(onPressed: uploading ? null : () => Navigator.pop(ctx), child: const Text('Cancel')),
-            ElevatedButton(
-              onPressed: uploading ? null : () async {
-                if (headline.text.trim().isEmpty) return;
-                setLocal(() => uploading = true);
-                try {
-                  var finalImageUrl = imageUrl.isNotEmpty ? imageUrl : (existing?.imageUrl ?? '');
-                  if (pickedBytes != null) {
-                    finalImageUrl = await UploadService.uploadImage(
-                      bytes: pickedBytes!,
-                      filename: 'portfolio.${pickedBytes![0] == 0x89 ? 'png' : 'jpg'}',
-                      folder: 'portfolio',
-                    );
-                  }
-                  final payload = {
-                    'headline': headline.text.trim(),
-                    'description': desc.text.trim(),
-                    'tag': tag.text.trim().isEmpty ? cfg.label : tag.text.trim(),
-                    'emoji': emoji.text.trim().isEmpty ? '🖼️' : emoji.text.trim(),
-                    'image_url': finalImageUrl,
-                    'featured': featured,
-                  };
-                  if (existing == null) {
-                    final created = await _repo.createPortfolioItem(payload);
-                    if (!mounted) return;
-                    setState(() => _works.add(PortfolioWork.fromJson(created)));
-                  } else if (existing.id != null) {
-                    final updated = await _repo.updatePortfolioItem(existing.id!, payload);
-                    if (!mounted) return;
-                    setState(() {
-                      final idx = _works.indexWhere((w) => w.id == existing.id);
-                      if (idx != -1) _works[idx] = PortfolioWork.fromJson(updated);
-                    });
-                  }
-                  if (!context.mounted) return;
-                  Navigator.pop(ctx);
-                  _toast(existing == null ? 'Work added to your portfolio' : 'Work updated');
-                } catch (e) {
-                  setLocal(() => uploading = false);
-                  _toast(_friendlyError(e));
-                }
-              },
-              child: uploading
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1A1407)))
-                  : Text(existing == null ? 'Add work' : 'Save'),
-            ),
-          ],
         ),
+      ),
       ),
     );
   }

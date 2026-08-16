@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
-import 'package:image_picker/image_picker.dart';
+
+import 'image_pick_io.dart' if (dart.library.html) 'image_pick_web.dart' as platform;
 
 class PickedImageFile {
   final Uint8List bytes;
@@ -19,29 +19,15 @@ class PickedImageFile {
   }
 }
 
-/// Opens the gallery / file chooser. Uses [FilePicker] on web (more reliable
-/// inside dialogs and modals than [ImagePicker]).
+/// Opens the device gallery / browser file chooser.
 Future<PickedImageFile?> pickImageFromGallery() async {
-  if (kIsWeb) {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      withData: true,
-      allowMultiple: false,
-    );
-    if (result == null || result.files.isEmpty) return null;
-    final file = result.files.single;
-    final bytes = file.bytes;
-    if (bytes == null || bytes.isEmpty) return null;
-    final name = file.name.trim().isNotEmpty ? file.name.trim() : 'photo.jpg';
-    return PickedImageFile(bytes: bytes, filename: name);
+  try {
+    return await platform.pickImagePlatform();
+  } catch (e) {
+    if (kDebugMode) {
+      // ignore: avoid_print
+      print('pickImageFromGallery failed: $e');
+    }
+    rethrow;
   }
-
-  final picked = await ImagePicker().pickImage(
-    source: ImageSource.gallery,
-    imageQuality: 85,
-  );
-  if (picked == null) return null;
-  final bytes = await picked.readAsBytes();
-  final name = picked.name.trim().isNotEmpty ? picked.name.trim() : 'photo.jpg';
-  return PickedImageFile(bytes: bytes, filename: name);
 }

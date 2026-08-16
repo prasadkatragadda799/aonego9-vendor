@@ -167,7 +167,53 @@ class _ProfileDetailsSectionState extends State<ProfileDetailsSection> {
             _mini('Skin', _skin),
           ]),
           const SizedBox(height: 12),
-          _listSection('Scene availability items', _sceneData.length, () => _editSceneItem(null), (i) => _editSceneItem(_sceneData[i], index: i), (i) => setState(() => _sceneData.removeAt(i)), (i) => '${_sceneData[i]['label'] ?? 'Scene'}'),
+          Row(children: [
+            Text('Scene availability items', style: AppType.body(size: 13, weight: FontWeight.w600)),
+            const Spacer(),
+            TextButton.icon(
+              onPressed: _addSceneGroup,
+              icon: const Icon(Icons.folder_outlined, size: 16),
+              label: const Text('Add section'),
+            ),
+            TextButton.icon(
+              onPressed: () => _editSceneItem(null),
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('Add item'),
+            ),
+          ]),
+          if (_sceneData.isEmpty)
+            Text('None added yet', style: AppType.body(size: 12, color: AppColors.textMuted))
+          else
+            for (var i = 0; i < _sceneData.length; i++)
+              if (_sceneData[i].containsKey('group'))
+                ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    '${_sceneData[i]['group']}',
+                    style: AppType.body(size: 13, weight: FontWeight.w700),
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    onPressed: () => setState(() => _sceneData.removeAt(i)),
+                  ),
+                )
+              else
+                ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('${_sceneData[i]['label'] ?? 'Scene'}', style: AppType.body(size: 13)),
+                  subtitle: Text(
+                    '${_sceneData[i]['status'] ?? 'avail'} · ${_sceneData[i]['desc'] ?? ''}',
+                    style: AppType.body(size: 11, color: AppColors.textMuted),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                    IconButton(icon: const Icon(Icons.edit_outlined, size: 18), onPressed: () => _editSceneItem(_sceneData[i], index: i)),
+                    IconButton(icon: const Icon(Icons.delete_outline, size: 18), onPressed: () => setState(() => _sceneData.removeAt(i))),
+                  ]),
+                ),
         ],
         if (isVenue) ...[
           _stringListSection('Amenities', _amenities, (v) => setState(() => _amenities.add(v)), (i) => setState(() => _amenities.removeAt(i))),
@@ -354,29 +400,87 @@ class _ProfileDetailsSectionState extends State<ProfileDetailsSection> {
     ]);
   }
 
+  void _addSceneGroup() {
+    final ctrl = TextEditingController();
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Scene section'),
+        content: TextField(
+          controller: ctrl,
+          decoration: const InputDecoration(hintText: 'e.g. Film & On-Screen Work'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () {
+            if (ctrl.text.trim().isEmpty) return;
+            setState(() => _sceneData.add({'group': ctrl.text.trim()}));
+            Navigator.pop(ctx);
+          }, child: const Text('Add')),
+        ],
+      ),
+    );
+  }
+
   void _editSceneItem(Map<String, dynamic>? item, {int? index}) {
     final label = TextEditingController(text: item?['label'] as String? ?? '');
     final desc = TextEditingController(text: item?['desc'] as String? ?? '');
-    final status = TextEditingController(text: item?['status'] as String? ?? 'avail');
-    _mapDialog('Scene item', () => {}, [label, desc, status], () {
-      final map = {
-        'status': status.text.trim().isEmpty ? 'avail' : status.text.trim(),
-        'icon': item?['icon'] ?? '✓',
-        'label': label.text.trim(),
-        'desc': desc.text.trim(),
-      };
-      setState(() {
-        if (index == null) {
-          _sceneData.add(map);
-        } else {
-          _sceneData[index] = map;
-        }
-      });
-    }, fields: [
-      ('Label', label),
-      ('Description', desc),
-      ('Status (avail/verified/restricted/no)', status),
-    ]);
+    var status = (item?['status'] as String?)?.trim().isNotEmpty == true ? item!['status'] as String : 'avail';
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('Scene item'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: label, decoration: const InputDecoration(labelText: 'Label')),
+                const SizedBox(height: 10),
+                TextField(controller: desc, maxLines: 3, decoration: const InputDecoration(labelText: 'Description')),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  value: status,
+                  decoration: const InputDecoration(labelText: 'Availability status'),
+                  items: const [
+                    DropdownMenuItem(value: 'avail', child: Text('Available')),
+                    DropdownMenuItem(value: 'verified', child: Text('Verified client required')),
+                    DropdownMenuItem(value: 'restricted', child: Text('Admin approval required')),
+                    DropdownMenuItem(value: 'no', child: Text('Not available')),
+                  ],
+                  onChanged: (v) => setLocal(() => status = v ?? 'avail'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(onPressed: () {
+              if (label.text.trim().isEmpty) return;
+              final map = {
+                'status': status,
+                'icon': switch (status) {
+                  'verified' => '⚠',
+                  'restricted' => '🔒',
+                  'no' => '✗',
+                  _ => '✓',
+                },
+                'label': label.text.trim(),
+                'desc': desc.text.trim(),
+              };
+              setState(() {
+                if (index == null) {
+                  _sceneData.add(map);
+                } else {
+                  _sceneData[index] = map;
+                }
+              });
+              Navigator.pop(ctx);
+            }, child: const Text('Save')),
+          ],
+        ),
+      ),
+    );
   }
 
   void _mapDialog(String title, VoidCallback _, List<TextEditingController> controllers, VoidCallback onSave, {List<(String, TextEditingController)>? fields}) {

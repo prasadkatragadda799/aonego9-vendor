@@ -137,6 +137,9 @@ class ApiClient {
     String mimeType = 'image/jpeg',
   }) async {
     final token = await getAccessToken();
+    if (token == null || token.isEmpty) {
+      throw ApiException(401, 'Not logged in — sign in again to upload photos');
+    }
     final uri = Uri.parse('$kBaseUrl/uploads/image').replace(queryParameters: {'folder': folder});
     final request = http.MultipartRequest('POST', uri);
     if (token != null) request.headers['Authorization'] = 'Bearer $token';
