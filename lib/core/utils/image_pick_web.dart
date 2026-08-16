@@ -18,15 +18,7 @@ Future<PickedImageFile?> pickImagePlatform() {
     if (!completer.isCompleted) completer.complete(value);
   }
 
-  void onWindowFocus(html.Event _) {
-    html.window.removeEventListener('focus', onWindowFocus);
-    Future<void>.delayed(const Duration(milliseconds: 500), () {
-      if (!completed) finish(null);
-    });
-  }
-
   input.onChange.listen((_) {
-    html.window.removeEventListener('focus', onWindowFocus);
     final file = input.files?.first;
     if (file == null) {
       finish(null);
@@ -46,7 +38,6 @@ Future<PickedImageFile?> pickImagePlatform() {
     reader.readAsArrayBuffer(file);
   });
 
-  html.window.addEventListener('focus', onWindowFocus);
   input.click();
 
   return completer.future.timeout(

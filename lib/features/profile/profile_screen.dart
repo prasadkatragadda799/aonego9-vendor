@@ -205,21 +205,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<String> _uploadBytes({
+    required Uint8List bytes,
+    required String filename,
+    required String folder,
+  }) async {
+    _toast('Uploading photo…');
+    final url = await UploadService.uploadImage(
+      bytes: bytes,
+      filename: filename,
+      folder: folder,
+    );
+    return url;
+  }
+
   Future<void> _pickAvatar() async {
     if (_avatarUploading) return;
     try {
       final picked = await pickImageFromGallery();
       if (picked == null) return;
-      if (!_uploadsReady) {
-        _toast('Image uploads are not configured on the server yet (Cloudinary env vars on Render).');
-        return;
-      }
-      if (!await ApiClient.isLoggedIn()) {
-        _toast('Session expired — please log in again.');
-        return;
-      }
       setState(() => _avatarUploading = true);
-      final url = await UploadService.uploadImage(
+      final url = await _uploadBytes(
         bytes: picked.bytes,
         filename: 'avatar.${picked.extension}',
         folder: 'avatars',
@@ -732,25 +738,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final emoji = TextEditingController(text: existing?.emoji ?? cfg.label.characters.first);
     bool featured = existing?.featured ?? false;
     String imageUrl = existing?.imageUrl ?? '';
-    PickedImageFile? pickedImage;
+    Uint8List? previewBytes;
     bool uploading = false;
 
-    Future<void> pickImage(void Function(void Function()) setLocal) async {
+    Future<void> pickAndUpload(void Function(void Function()) setLocal) async {
       try {
         final picked = await pickImageFromGallery();
         if (picked == null) return;
         setLocal(() {
-          pickedImage = picked;
-          imageUrl = '';
+          previewBytes = picked.bytes;
+          uploading = true;
         });
-        _toast('Photo selected — tap Save to upload');
+        final url = await _uploadBytes(
+          bytes: picked.bytes,
+          filename: 'portfolio.${picked.extension}',
+          folder: 'portfolio',
+        );
+        setLocal(() {
+          imageUrl = url;
+          previewBytes = null;
+          uploading = false;
+        });
+        _toast('Photo uploaded — finish the form and tap Save');
       } catch (e) {
-        _toast(_friendlyError(e).isEmpty ? 'Could not open photo picker' : _friendlyError(e));
+        setLocal(() => uploading = false);
+        _toast(_friendlyError(e));
       }
     }
 
     PortfolioWork? previewWork() {
-      if (pickedImage != null) return null;
+      if (previewBytes != null) return null;
       final url = imageUrl.isNotEmpty ? imageUrl : (existing?.imageUrl ?? '');
       if (url.isEmpty) return existing;
       return PortfolioWork(
@@ -789,11 +806,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 16),
               _dlgLabel('Cover photo (shown in user app gallery)'),
               OutlinedButton.icon(
-                onPressed: uploading ? null : () => pickImage(setLocal),
+                onPressed: uploading ? null : () => pickAndUpload(setLocal),
                 icon: uploading
                     ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: cfg.accent))
                     : const Icon(Icons.upload_file_outlined, size: 18),
-                label: Text(pickedImage != null || imageUrl.isNotEmpty || (existing?.imageUrl.isNotEmpty ?? false) ? 'Change photo' : 'Upload photo'),
+                label: Text(imageUrl.isNotEmpty || (existing?.imageUrl.isNotEmpty ?? false) ? 'Change photo' : 'Upload photo'),
               ),
               const SizedBox(height: 10),
               ClipRRect(
@@ -801,7 +818,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: SizedBox(
                   height: 160,
                   width: double.infinity,
-                  child: _portfolioCover(cfg: cfg, work: previewWork(), previewBytes: pickedImage?.bytes, emojiSize: 48),
+                  child: _portfolioCover(cfg: cfg, work: previewWork(), previewBytes: previewBytes, emojiSize: 48),
                 ),
               ),
               const SizedBox(height: 14),
@@ -847,25 +864,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _toast('Headline is required');
                         return;
                       }
-                      if (!_uploadsReady && pickedImage != null) {
-                        _toast('Image uploads are not configured on the server yet (Cloudinary env vars on Render).');
-                        return;
-                      }
-                      if (pickedImage != null && !await ApiClient.isLoggedIn()) {
-                        _toast('Session expired — please log in again.');
-                        return;
-                      }
                       setLocal(() => uploading = true);
                       try {
-                        var finalImageUrl = imageUrl.isNotEmpty ? imageUrl : (existing?.imageUrl ?? '');
-                        final selected = pickedImage;
-                        if (selected != null) {
-                          finalImageUrl = await UploadService.uploadImage(
-                            bytes: selected.bytes,
-                            filename: 'portfolio.${selected.extension}',
-                            folder: 'portfolio',
-                          );
-                        }
+                        final finalImageUrl = imageUrl.isNotEmpty ? imageUrl : (existing?.imageUrl ?? '');
                         final payload = {
                           'headline': headline.text.trim(),
                           'description': desc.text.trim(),

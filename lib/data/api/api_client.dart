@@ -179,22 +179,26 @@ class ApiClient {
     String folder = 'misc',
     String mimeType = 'image/jpeg',
   }) async {
+    if (bytes.isEmpty) {
+      throw ApiException(400, 'Selected file is empty — try another image');
+    }
+
     await _ensureAuthForUpload();
 
-    Future<http.Response> send() async {
-      if (kIsWeb) {
-        return http.post(
-          Uri.parse('$kBaseUrl/uploads/image-base64'),
-          headers: await _headers(),
-          body: jsonEncode({
-            'data': base64Encode(bytes),
-            'filename': filename,
-            'folder': folder,
-            'content_type': mimeType,
-          }),
-        );
-      }
+    Future<http.Response> sendBase64() async {
+      return http.post(
+        Uri.parse('$kBaseUrl/uploads/image-base64'),
+        headers: await _headers(),
+        body: jsonEncode({
+          'data': base64Encode(bytes),
+          'filename': filename,
+          'folder': folder,
+          'content_type': mimeType,
+        }),
+      );
+    }
 
+    Future<http.Response> sendMultipart() async {
       final token = await getAccessToken();
       final uri = Uri.parse('$kBaseUrl/uploads/image').replace(queryParameters: {'folder': folder});
       final request = http.MultipartRequest('POST', uri);
@@ -207,6 +211,15 @@ class ApiClient {
       ));
       final streamed = await request.send();
       return http.Response.fromStream(streamed);
+    }
+
+    Future<http.Response> send() async {
+      if (kIsWeb) {
+        final base64Res = await sendBase64();
+        if (base64Res.statusCode != 404) return base64Res;
+        return sendMultipart();
+      }
+      return sendMultipart();
     }
 
     var res = await send();
