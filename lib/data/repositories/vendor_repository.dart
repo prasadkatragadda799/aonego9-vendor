@@ -1,6 +1,6 @@
 import '../models/models.dart';
 import '../api/api_client.dart';
-import '../category/vendor_category.dart';
+import '../../core/category/vendor_category.dart';
 
 /// ───────────────────────────────────────────────────────────────
 /// VENDOR REPOSITORY — all methods now call the real FastAPI backend.

@@ -135,24 +135,12 @@ class _BrandPanel extends StatelessWidget {
             style: AppType.body(size: 14, color: AppColors.textSecondary, height: 1.6),
           )),
           const SizedBox(height: 40),
-          Row(children: [
-            _stat('₹18.4L', 'Earned', accent),
-            _stat('132', 'Bookings', accent),
-            _stat('4.8★', 'Rating', accent),
-          ]),
+          Text('Sign in with your vendor account — your console theme is set automatically from your profile.',
+              style: AppType.body(size: 13, color: AppColors.textMuted, height: 1.5)),
         ]),
       ),
     );
   }
-
-  Widget _stat(String v, String l, Color accent) => Padding(
-        padding: const EdgeInsets.only(right: 36),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(v, style: AppType.display(color: accent, size: 26, weight: FontWeight.w600)),
-          const SizedBox(height: 2),
-          Text(l, style: AppType.eyebrow(color: AppColors.textMuted, size: 11)),
-        ]),
-      );
 }
 
 class _AuthForm extends StatelessWidget {
