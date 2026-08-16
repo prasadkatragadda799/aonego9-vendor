@@ -1,4 +1,6 @@
 import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -68,6 +70,17 @@ class ApiClient {
     return headers;
   }
 
+  static String _formatDetail(dynamic raw, int statusCode) {
+    if (raw is String && raw.trim().isNotEmpty) return raw.trim();
+    if (raw is List) {
+      return raw
+          .map((e) => e is Map ? (e['msg'] ?? e.toString()) : e.toString())
+          .join('; ');
+    }
+    if (raw != null) return raw.toString();
+    return 'Request failed ($statusCode)';
+  }
+
   static dynamic _decode(http.Response res) {
     if (res.statusCode >= 200 && res.statusCode < 300) {
       if (res.body.isEmpty) return null;
@@ -76,14 +89,44 @@ class ApiClient {
     String detail = 'Request failed (${res.statusCode})';
     try {
       final body = jsonDecode(res.body);
-      detail = body['detail'] ?? detail;
+      if (body is Map && body.containsKey('detail')) {
+        detail = _formatDetail(body['detail'], res.statusCode);
+      }
     } catch (_) {}
     throw ApiException(res.statusCode, detail);
   }
 
   static Future<void> _clearSessionOnAuthFailure(int statusCode) async {
-    if (statusCode == 401 || statusCode == 403) {
+    if (statusCode == 401) {
       await clearTokens();
+    }
+  }
+
+  static Future<bool> _refreshAccessToken() async {
+    final refresh = await getRefreshToken();
+    if (refresh == null || refresh.isEmpty) return false;
+    try {
+      final res = await http.post(
+        Uri.parse('$kBaseUrl/auth/refresh'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refresh_token': refresh}),
+      );
+      if (res.statusCode != 200) return false;
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      await saveTokens(
+        body['access_token'] as String,
+        body['refresh_token'] as String,
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<void> _ensureAuthForUpload() async {
+    if ((await getAccessToken())?.isNotEmpty == true) return;
+    if (!await _refreshAccessToken()) {
+      throw ApiException(401, 'Not logged in — sign in again to upload photos');
     }
   }
 
@@ -129,28 +172,47 @@ class ApiClient {
     if (res.statusCode >= 300) _decode(res);
   }
 
-  /// POST /api/v1/uploads/image — multipart image upload to Cloudinary via backend.
+  /// POST /api/v1/uploads/image — uploads via JSON base64 on web, multipart elsewhere.
   static Future<Map<String, dynamic>> uploadImage({
     required List<int> bytes,
     required String filename,
     String folder = 'misc',
     String mimeType = 'image/jpeg',
   }) async {
-    final token = await getAccessToken();
-    if (token == null || token.isEmpty) {
-      throw ApiException(401, 'Not logged in — sign in again to upload photos');
+    await _ensureAuthForUpload();
+
+    Future<http.Response> send() async {
+      if (kIsWeb) {
+        return http.post(
+          Uri.parse('$kBaseUrl/uploads/image-base64'),
+          headers: await _headers(),
+          body: jsonEncode({
+            'data': base64Encode(bytes),
+            'filename': filename,
+            'folder': folder,
+            'content_type': mimeType,
+          }),
+        );
+      }
+
+      final token = await getAccessToken();
+      final uri = Uri.parse('$kBaseUrl/uploads/image').replace(queryParameters: {'folder': folder});
+      final request = http.MultipartRequest('POST', uri);
+      if (token != null) request.headers['Authorization'] = 'Bearer $token';
+      request.files.add(http.MultipartFile.fromBytes(
+        'file',
+        bytes,
+        filename: filename,
+        contentType: MediaType.parse(mimeType),
+      ));
+      final streamed = await request.send();
+      return http.Response.fromStream(streamed);
     }
-    final uri = Uri.parse('$kBaseUrl/uploads/image').replace(queryParameters: {'folder': folder});
-    final request = http.MultipartRequest('POST', uri);
-    if (token != null) request.headers['Authorization'] = 'Bearer $token';
-    request.files.add(http.MultipartFile.fromBytes(
-      'file',
-      bytes,
-      filename: filename,
-      contentType: MediaType.parse(mimeType),
-    ));
-    final streamed = await request.send();
-    final res = await http.Response.fromStream(streamed);
+
+    var res = await send();
+    if (res.statusCode == 401 && await _refreshAccessToken()) {
+      res = await send();
+    }
     await _clearSessionOnAuthFailure(res.statusCode);
     return (_decode(res) as Map).cast<String, dynamic>();
   }
