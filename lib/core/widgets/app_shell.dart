@@ -291,7 +291,7 @@ class _TopBar extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(VendorSession.vendorName, style: AppType.body(weight: FontWeight.w600, size: 13)),
-              Text(VendorSession.config.profileType, style: AppType.body(color: AppColors.textMuted, size: 11)),
+              Text(VendorSession.profileSubtitle, style: AppType.body(color: AppColors.textMuted, size: 11)),
             ],
           ),
         ],

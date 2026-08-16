@@ -1,5 +1,6 @@
 import '../models/models.dart';
 import '../api/api_client.dart';
+import '../category/vendor_category.dart';
 
 /// ───────────────────────────────────────────────────────────────
 /// VENDOR REPOSITORY — all methods now call the real FastAPI backend.
@@ -32,7 +33,10 @@ class VendorRepository {
     return data;
   }
 
-  Future<void> logout() => ApiClient.clearTokens();
+  Future<void> logout() async {
+    await ApiClient.clearTokens();
+    VendorSession.reset();
+  }
 
   // ── Dashboard ─────────────────────────────────────────────────
 

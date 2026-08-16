@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Base URL — change to your deployed backend URL in production.
@@ -109,12 +110,18 @@ class ApiClient {
     required List<int> bytes,
     required String filename,
     String folder = 'misc',
+    String mimeType = 'image/jpeg',
   }) async {
     final token = await getAccessToken();
     final uri = Uri.parse('$kBaseUrl/uploads/image').replace(queryParameters: {'folder': folder});
     final request = http.MultipartRequest('POST', uri);
     if (token != null) request.headers['Authorization'] = 'Bearer $token';
-    request.files.add(http.MultipartFile.fromBytes('file', bytes, filename: filename));
+    request.files.add(http.MultipartFile.fromBytes(
+      'file',
+      bytes,
+      filename: filename,
+      contentType: MediaType.parse(mimeType),
+    ));
     final streamed = await request.send();
     final res = await http.Response.fromStream(streamed);
     return (_decode(res) as Map).cast<String, dynamic>();

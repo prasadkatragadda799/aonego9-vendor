@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../widgets/app_shell.dart';
 import '../../data/api/api_client.dart';
+import '../../data/repositories/vendor_repository.dart';
+import '../../core/category/vendor_category.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/dashboard/dashboard_screen.dart';
 import '../../features/bookings/bookings_screen.dart';
@@ -16,14 +18,46 @@ import '../../features/messages/messages_screen.dart';
 import '../../features/notifications/notifications_screen.dart';
 import '../../features/settings/settings_screen.dart';
 
+bool _vendorSessionReady = false;
+
+Future<void> ensureVendorSession() async {
+  if (_vendorSessionReady || VendorSession.profileLoaded) {
+    _vendorSessionReady = true;
+    return;
+  }
+  if (!await ApiClient.isLoggedIn()) return;
+  try {
+    VendorSession.setVendorFromProfile(await VendorRepository().myProfile());
+    _vendorSessionReady = true;
+  } catch (_) {
+    await ApiClient.clearTokens();
+    VendorSession.reset();
+    _vendorSessionReady = false;
+  }
+}
+
 /// Central route table. Authenticated pages are wrapped in [AppShell]
 /// via a ShellRoute so the navigation persists across pages.
 final appRouter = GoRouter(
   initialLocation: '/login',
   redirect: (context, state) async {
-    if (state.matchedLocation == '/login') return null;
     final loggedIn = await ApiClient.isLoggedIn();
-    if (!loggedIn) return '/login';
+    final onLogin = state.matchedLocation == '/login';
+
+    if (onLogin) {
+      if (loggedIn) {
+        await ensureVendorSession();
+        return '/dashboard';
+      }
+      return null;
+    }
+
+    if (!loggedIn) {
+      _vendorSessionReady = false;
+      return '/login';
+    }
+
+    await ensureVendorSession();
     return null;
   },
   routes: [

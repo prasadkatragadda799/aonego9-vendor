@@ -65,6 +65,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _repo = VendorRepository();
   List<PortfolioWork> _works = [];
   Map<String, dynamic> _profileDetails = {};
+  int _rosterCount = 0;
 
   bool _loading = true;
   bool _saving = false;
@@ -81,6 +82,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _bioCtrl = TextEditingController();
   String _email = '';
   String _avatarUrl = '';
+  String _serverCategory = '';
+  bool _avatarUploading = false;
 
   @override
   void initState() {
@@ -108,10 +111,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _repo.myProfile(),
         _repo.portfolio(),
         _repo.profileDetails(),
+        _repo.roster(),
       ]);
       final data = results[0] as Map<String, dynamic>;
       final portfolio = results[1] as List<Map<String, dynamic>>;
       final details = results[2] as Map<String, dynamic>;
+      final roster = results[3] as List;
       if (!mounted) return;
       setState(() {
         _nameCtrl.text = (data['name'] ?? '') as String;
@@ -121,14 +126,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _cityCtrl.text = (data['city'] ?? '') as String;
         _bioCtrl.text = (data['bio'] ?? '') as String;
         _avatarUrl = (data['avatar_url'] ?? '') as String;
+        _serverCategory = (data['category'] ?? '') as String;
         _rating = ((data['rating'] as num?) ?? 0).toDouble();
         _totalBookings = ((data['total_bookings'] as num?) ?? 0).toInt();
         _kycVerified = data['kyc_verified'] as bool? ?? false;
         _plan = (data['plan'] ?? 'Starter') as String;
         _works = portfolio.map(PortfolioWork.fromJson).toList();
         _profileDetails = details;
+        _rosterCount = roster.length;
         _loading = false;
       });
+      VendorSession.setVendorFromProfile(data);
     } catch (e) {
       if (!mounted) return;
       setState(() { _error = _friendlyError(e); _loading = false; });
@@ -145,6 +153,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'city': _cityCtrl.text.trim(),
         'bio': _bioCtrl.text.trim(),
         'avatar_url': _avatarUrl,
+      });
+      VendorSession.setVendorFromProfile({
+        'name': _nameCtrl.text.trim(),
+        'company': _companyCtrl.text.trim(),
+        'city': _cityCtrl.text.trim(),
+        'category': _serverCategory,
       });
       if (!mounted) return;
       setState(() => _saving = false);
@@ -187,16 +201,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _pickAvatar() async {
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
-    if (picked == null) return;
+    if (_avatarUploading) return;
     try {
+      final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
+      if (picked == null) return;
+      setState(() => _avatarUploading = true);
       final bytes = await picked.readAsBytes();
-      final url = await UploadService.uploadImage(bytes: bytes, filename: 'avatar.jpg', folder: 'avatars');
+      final ext = picked.name.toLowerCase().endsWith('.png') ? 'png' : 'jpg';
+      final url = await UploadService.uploadImage(bytes: bytes, filename: 'avatar.$ext', folder: 'avatars');
       if (!mounted) return;
-      setState(() => _avatarUrl = url);
-      _toast('Profile photo uploaded — tap Save Changes');
+      setState(() {
+        _avatarUrl = url;
+        _avatarUploading = false;
+      });
+      _toast('Photo uploaded — tap Save Changes to keep it');
     } catch (e) {
-      _toast(_friendlyError(e).isEmpty ? 'Photo upload failed' : _friendlyError(e));
+      if (mounted) setState(() => _avatarUploading = false);
+      _toast(_friendlyError(e).isEmpty ? 'Photo upload failed — check Cloudinary env on backend' : _friendlyError(e));
     }
   }
 
@@ -291,36 +312,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 16),
               _portfolioManager(context, cfg),
               const SizedBox(height: 16),
-              ProfileDetailsSection(
-                cfg: cfg,
-                initial: _profileDetails,
-                onSave: (payload) async {
-                  final updated = await _repo.updateProfileDetails(payload);
-                  if (!mounted) return;
-                  setState(() => _profileDetails = updated);
-                  _toast('Profile details saved');
-                },
-              ),
+              _profileDetailsSection(cfg),
             ]),
-            desktop: (_) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Expanded(flex: 2, child: Column(children: [
-                _profileCard(context, cfg),
-                const SizedBox(height: 16),
-                _marketplacePreview(context, cfg),
-                const SizedBox(height: 16),
-                ProfileDetailsSection(
-                  cfg: cfg,
-                  initial: _profileDetails,
-                  onSave: (payload) async {
-                    final updated = await _repo.updateProfileDetails(payload);
-                    if (!mounted) return;
-                    setState(() => _profileDetails = updated);
-                    _toast('Profile details saved');
-                  },
-                ),
-              ])),
-              const SizedBox(width: 16),
-              Expanded(flex: 3, child: _portfolioManager(context, cfg)),
+            desktop: (_) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(flex: 2, child: Column(children: [
+                  _profileCard(context, cfg),
+                  const SizedBox(height: 16),
+                  _marketplacePreview(context, cfg),
+                ])),
+                const SizedBox(width: 16),
+                Expanded(flex: 3, child: _portfolioManager(context, cfg)),
+              ]),
+              const SizedBox(height: 16),
+              _profileDetailsSection(cfg),
             ]),
           ),
         ),
@@ -331,6 +336,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _toast(String msg) => ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(msg)));
+
+  Widget _profileDetailsSection(VendorCategoryConfig cfg) {
+    return ProfileDetailsSection(
+      cfg: cfg,
+      initial: _profileDetails,
+      onSave: (payload) async {
+        final updated = await _repo.updateProfileDetails(payload);
+        if (!mounted) return;
+        setState(() => _profileDetails = updated);
+        _toast('Profile details saved');
+      },
+    );
+  }
 
   // ── Profile performance — real stats from the vendor account. ──
   Widget _performanceStrip(VendorCategoryConfig cfg) {
@@ -374,6 +392,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   String get _displayName => _companyCtrl.text.trim().isNotEmpty ? _companyCtrl.text.trim() : 'Your business';
 
+  String get _profileSubtitle {
+    final city = _cityCtrl.text.trim();
+    final cfg = VendorSession.config;
+    return city.isEmpty ? cfg.label : '${cfg.label} · $city';
+  }
+
+  static const _unset = 'Not set yet';
+
+  String _detailText(String key) {
+    final v = (_profileDetails[key] as String?)?.trim() ?? '';
+    return v.isEmpty ? _unset : v;
+  }
+
+  String _joinStrings(List<dynamic> items) {
+    final values = items.map((e) => e.toString().trim()).where((s) => s.isNotEmpty).toList();
+    return values.isEmpty ? _unset : values.join(', ');
+  }
+
+  List<MapEntry<String, String>> _profileSummaryFields(VendorCategoryConfig cfg) {
+    final d = _profileDetails;
+    final services = ((d['services'] as List?) ?? []).cast<dynamic>();
+    final amenities = ((d['amenities'] as List?) ?? []).cast<dynamic>();
+    final spaces = ((d['spaces'] as List?) ?? []).cast<Map>();
+    final equipment = ((d['equipment'] as List?) ?? []).cast<Map>();
+    final tags = ((d['tags'] as List?) ?? []).cast<dynamic>();
+
+    String specialities() {
+      if (tags.isNotEmpty) return _joinStrings(tags);
+      if (services.isNotEmpty) return _joinStrings(services);
+      return _unset;
+    }
+
+    switch (cfg.category) {
+      case VendorCategory.talent:
+        return [
+          MapEntry('Roster size', _rosterCount > 0 ? '$_rosterCount on roster' : _unset),
+          MapEntry('Specialities', specialities()),
+          MapEntry('Languages', _detailText('languages')),
+          MapEntry('Experience', _detailText('experience')),
+        ];
+      case VendorCategory.photography:
+      case VendorCategory.videography:
+        final gear = equipment
+            .map((e) => (e['name'] as String?)?.trim() ?? '')
+            .where((s) => s.isNotEmpty)
+            .take(4)
+            .join(', ');
+        return [
+          MapEntry('Primary gear', gear.isEmpty ? _unset : gear),
+          MapEntry('Specialities', specialities()),
+          MapEntry('Experience', _detailText('experience')),
+        ];
+      case VendorCategory.venue:
+        return [
+          MapEntry('Spaces listed', spaces.isEmpty ? _unset : '${spaces.length} space${spaces.length == 1 ? '' : 's'}'),
+          MapEntry('Amenities', _joinStrings(amenities)),
+          MapEntry('Overview', _detailText('overview')),
+        ];
+      case VendorCategory.events:
+        return [
+          MapEntry('Team on roster', _rosterCount > 0 ? '$_rosterCount crew' : _unset),
+          MapEntry('Services managed', _joinStrings(services)),
+          MapEntry('Experience', _detailText('experience')),
+        ];
+    }
+  }
+
   Widget _profileCard(BuildContext context, VendorCategoryConfig cfg) {
     return SectionCard(
       title: 'Business Profile',
@@ -381,9 +466,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Center(
           child: Column(children: [
             GestureDetector(
-              onTap: _pickAvatar,
+              onTap: _avatarUploading ? null : _pickAvatar,
               child: Stack(children: [
                 _avatarWidget(84),
+                if (_avatarUploading)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                      alignment: Alignment.center,
+                      child: const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold)),
+                    ),
+                  ),
                 Positioned(
                   right: 0, bottom: 0,
                   child: Container(
@@ -394,9 +487,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ]),
             ),
+            const SizedBox(height: 6),
+            Text('Tap photo to upload', style: AppType.body(size: 11, color: AppColors.textMuted)),
             const SizedBox(height: 12),
             Text(_displayName, style: AppType.display(size: 17, weight: FontWeight.w600)),
-            Text(cfg.profileType, style: AppType.body(color: AppColors.textMuted, size: 13)),
+            Text(_profileSubtitle, style: AppType.body(color: AppColors.textMuted, size: 13)),
             const SizedBox(height: 8),
             StatusChip(
               label: _kycVerified ? 'KYC Verified' : 'KYC Pending',
@@ -410,7 +505,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _Field(label: 'Contact email', value: _email, enabled: false),
         _Field(label: 'Phone', controller: _phoneCtrl),
         _Field(label: 'City', controller: _cityCtrl),
-        for (final f in cfg.profileFields) _Field(label: f.key, value: f.value, enabled: false),
+        for (final f in _profileSummaryFields(cfg))
+          _Field(label: f.key, value: f.value, enabled: false),
         _Field(label: 'About', controller: _bioCtrl, lines: 3),
       ]),
     );
@@ -448,7 +544,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const Icon(Icons.verified, size: 16, color: AppColors.gold),
                 ]),
                 const SizedBox(height: 3),
-                Text(cfg.profileType, style: AppType.body(size: 12, color: AppColors.textMuted)),
+                Text(_profileSubtitle, style: AppType.body(size: 12, color: AppColors.textMuted)),
                 const SizedBox(height: 10),
                 Row(children: [
                   const Icon(Icons.star, size: 14, color: AppColors.gold),
@@ -601,6 +697,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
     bool featured = existing?.featured ?? false;
     String imageUrl = existing?.imageUrl ?? '';
     Uint8List? pickedBytes;
+    bool uploading = false;
+
+    Future<void> pickImage(void Function(void Function()) setLocal) async {
+      final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      setLocal(() {
+        pickedBytes = bytes;
+        imageUrl = '';
+      });
+    }
+
+    PortfolioWork? previewWork() {
+      if (pickedBytes != null) return null;
+      final url = imageUrl.isNotEmpty ? imageUrl : (existing?.imageUrl ?? '');
+      if (url.isEmpty) return existing;
+      return PortfolioWork(
+        headline: existing?.headline ?? headline.text,
+        description: existing?.description ?? '',
+        tag: existing?.tag ?? '',
+        emoji: existing?.emoji ?? '🖼️',
+        imageUrl: url,
+      );
+    }
 
     showDialog<void>(
       context: context,
@@ -613,35 +733,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
             width: 420,
             child: SingleChildScrollView(
               child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                _dlgLabel('Cover photo (shown in user app gallery)'),
+                GestureDetector(
+                  onTap: uploading ? null : () => pickImage(setLocal),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: SizedBox(
+                      height: 160,
+                      width: double.infinity,
+                      child: Stack(fit: StackFit.expand, children: [
+                        _portfolioCover(cfg: cfg, work: previewWork(), previewBytes: pickedBytes, emojiSize: 48),
+                        if (pickedBytes == null && (imageUrl.isEmpty && (existing?.imageUrl.isEmpty ?? true)))
+                          Container(
+                            color: Colors.black38,
+                            alignment: Alignment.center,
+                            child: Column(mainAxisSize: MainAxisSize.min, children: [
+                              Icon(Icons.add_photo_alternate_outlined, size: 32, color: cfg.accent),
+                              const SizedBox(height: 8),
+                              Text('Tap to upload photo', style: AppType.body(size: 12, weight: FontWeight.w600, color: Colors.white)),
+                            ]),
+                          ),
+                      ]),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: uploading ? null : () => pickImage(setLocal),
+                  icon: const Icon(Icons.upload_file_outlined, size: 16),
+                  label: Text(pickedBytes != null || imageUrl.isNotEmpty || (existing?.imageUrl.isNotEmpty ?? false) ? 'Change photo' : 'Upload photo'),
+                ),
+                const SizedBox(height: 14),
                 _dlgLabel('Headline'),
                 TextField(controller: headline, decoration: const InputDecoration(hintText: 'e.g. Vogue India Editorial')),
                 const SizedBox(height: 14),
                 _dlgLabel('Description (shown under the image)'),
                 TextField(controller: desc, maxLines: 3, decoration: const InputDecoration(hintText: 'What the project was, where, and your role…')),
-                const SizedBox(height: 14),
-                _dlgLabel('Cover image'),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: SizedBox(
-                    height: 140,
-                    width: double.infinity,
-                    child: _portfolioCover(cfg: cfg, work: existing, previewBytes: pickedBytes),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
-                    if (picked == null) return;
-                    final bytes = await picked.readAsBytes();
-                    setLocal(() {
-                      pickedBytes = bytes;
-                      imageUrl = '';
-                    });
-                  },
-                  icon: const Icon(Icons.upload_file_outlined, size: 16),
-                  label: Text(pickedBytes != null || imageUrl.isNotEmpty ? 'Change image' : 'Upload image'),
-                ),
                 const SizedBox(height: 14),
                 Row(children: [
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -650,7 +777,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ])),
                   const SizedBox(width: 12),
                   SizedBox(width: 96, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    _dlgLabel('Cover'),
+                    _dlgLabel('Fallback emoji'),
                     TextField(controller: emoji, textAlign: TextAlign.center, decoration: const InputDecoration(hintText: '📷')),
                   ])),
                 ]),
@@ -667,16 +794,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(onPressed: uploading ? null : () => Navigator.pop(ctx), child: const Text('Cancel')),
             ElevatedButton(
-              onPressed: () async {
+              onPressed: uploading ? null : () async {
                 if (headline.text.trim().isEmpty) return;
+                setLocal(() => uploading = true);
                 try {
-                  var finalImageUrl = imageUrl;
+                  var finalImageUrl = imageUrl.isNotEmpty ? imageUrl : (existing?.imageUrl ?? '');
                   if (pickedBytes != null) {
+                    final ext = pickedBytes!.length > 8 && pickedBytes![0] == 0x89 ? 'png' : 'jpg';
                     finalImageUrl = await UploadService.uploadImage(
                       bytes: pickedBytes!,
-                      filename: 'portfolio.jpg',
+                      filename: 'portfolio.$ext',
                       folder: 'portfolio',
                     );
                   }
@@ -704,10 +833,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Navigator.pop(ctx);
                   _toast(existing == null ? 'Work added to your portfolio' : 'Work updated');
                 } catch (e) {
-                  _toast(_friendlyError(e).isEmpty ? 'Failed to save work' : _friendlyError(e));
+                  setLocal(() => uploading = false);
+                  _toast(_friendlyError(e).isEmpty ? 'Save failed — is Cloudinary configured on backend?' : _friendlyError(e));
                 }
               },
-              child: Text(existing == null ? 'Add work' : 'Save'),
+              child: uploading
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1A1407)))
+                  : Text(existing == null ? 'Add work' : 'Save'),
             ),
           ],
         ),

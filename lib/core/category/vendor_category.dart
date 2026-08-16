@@ -43,10 +43,6 @@ class VendorCategoryConfig {
   // Login / brand
   final String loginTagline;
 
-  // Profile
-  final String profileType; // "Talent Agency · Delhi"
-  final List<MapEntry<String, String>> profileFields;
-
   const VendorCategoryConfig({
     required this.category,
     required this.label,
@@ -68,8 +64,6 @@ class VendorCategoryConfig {
     required this.activeMetricLabel,
     required this.activeMetricIcon,
     required this.loginTagline,
-    required this.profileType,
-    required this.profileFields,
   });
 }
 
@@ -98,12 +92,6 @@ const Map<VendorCategory, VendorCategoryConfig> categoryConfigs = {
     activeMetricIcon: Icons.groups_outlined,
     loginTagline:
         'Manage your talent roster, list services, accept bookings, track earnings and chat with clients — all in one place.',
-    profileType: 'Talent Agency · Delhi',
-    profileFields: [
-      MapEntry('Roster size', '24 models'),
-      MapEntry('Specialities', 'Editorial, Runway, Commercial'),
-      MapEntry('Languages', 'Hindi, English, Marathi'),
-    ],
   ),
   VendorCategory.photography: VendorCategoryConfig(
     category: VendorCategory.photography,
@@ -127,12 +115,6 @@ const Map<VendorCategory, VendorCategoryConfig> categoryConfigs = {
     activeMetricIcon: Icons.camera_outlined,
     loginTagline:
         'Showcase your portfolio, list shoot packages, manage your crew and gear, accept bookings and track earnings — all in one place.',
-    profileType: 'Photography Studio · Mumbai',
-    profileFields: [
-      MapEntry('Primary gear', 'Sony A1, Profoto B10'),
-      MapEntry('Specialities', 'Fashion, Wedding, Commercial'),
-      MapEntry('Turnaround', '7–10 days'),
-    ],
   ),
   VendorCategory.videography: VendorCategoryConfig(
     category: VendorCategory.videography,
@@ -156,12 +138,6 @@ const Map<VendorCategory, VendorCategoryConfig> categoryConfigs = {
     activeMetricIcon: Icons.movie_outlined,
     loginTagline:
         'Publish your reels, list production packages, manage your crew, accept bookings and track earnings — all in one place.',
-    profileType: 'Production House · Mumbai',
-    profileFields: [
-      MapEntry('Primary gear', 'RED Komodo, DJI Ronin'),
-      MapEntry('Specialities', 'Brand films, Weddings, Social'),
-      MapEntry('Delivery', '2–3 weeks'),
-    ],
   ),
   VendorCategory.venue: VendorCategoryConfig(
     category: VendorCategory.venue,
@@ -185,12 +161,6 @@ const Map<VendorCategory, VendorCategoryConfig> categoryConfigs = {
     activeMetricIcon: Icons.meeting_room_outlined,
     loginTagline:
         'List your spaces, set capacities and hire packages, manage availability, accept bookings and track earnings — all in one place.',
-    profileType: 'Event Venue · Mumbai',
-    profileFields: [
-      MapEntry('Total capacity', '400 guests'),
-      MapEntry('Spaces', '3 halls + rooftop'),
-      MapEntry('Amenities', 'Parking, Catering, AV, Green room'),
-    ],
   ),
   VendorCategory.events: VendorCategoryConfig(
     category: VendorCategory.events,
@@ -214,12 +184,6 @@ const Map<VendorCategory, VendorCategoryConfig> categoryConfigs = {
     activeMetricIcon: Icons.engineering_outlined,
     loginTagline:
         'List your event packages, manage your crew, accept bookings, track earnings and chat with clients — all in one place.',
-    profileType: 'Event Production · Delhi',
-    profileFields: [
-      MapEntry('Team size', '18 crew'),
-      MapEntry('Specialities', 'Fashion shows, Corporate, Weddings'),
-      MapEntry('Cities served', 'Delhi, Mumbai, Goa'),
-    ],
   ),
 };
 
@@ -230,21 +194,57 @@ class VendorSession {
   VendorSession._();
   static VendorCategory category = VendorCategory.talent;
   static VendorCategoryConfig get config => categoryConfigs[category]!;
+  static bool _profileLoaded = false;
 
   /// The signed-in vendor's display name (company, falling back to name),
   /// as returned by `GET /vendors/me`. Populated on login; read by the
   /// shell header and dashboard greeting instead of a hardcoded name.
   static String vendorName = 'Vendor';
+  static String vendorCity = '';
+
+  static String get profileSubtitle {
+    final city = vendorCity.trim();
+    return city.isEmpty ? config.label : '${config.label} · $city';
+  }
 
   static void setVendorFromProfile(Map<String, dynamic> profile) {
     final company = (profile['company'] as String?)?.trim() ?? '';
     final name = (profile['name'] as String?)?.trim() ?? '';
     vendorName = company.isNotEmpty ? company : (name.isNotEmpty ? name : 'Vendor');
-    final serverCategory = (profile['category'] as String?)?.trim() ?? '';
-    if (serverCategory.isNotEmpty) setFromLabel(serverCategory);
+    vendorCity = (profile['city'] as String?)?.trim() ?? '';
+    setCategoryFromServer((profile['category'] as String?)?.trim() ?? '');
+    _profileLoaded = true;
   }
 
-  /// Maps the login dropdown label → category.
+  /// Maps whatever the backend stores (label or slug) → console category.
+  static void setCategoryFromServer(String raw) {
+    if (raw.isEmpty) return;
+    final lower = raw.toLowerCase();
+    if (lower.contains('photo')) {
+      category = VendorCategory.photography;
+    } else if (lower.contains('video')) {
+      category = VendorCategory.videography;
+    } else if (lower.contains('venue')) {
+      category = VendorCategory.venue;
+    } else if (lower.contains('event')) {
+      category = VendorCategory.events;
+    } else if (lower.contains('talent') || lower.contains('model')) {
+      category = VendorCategory.talent;
+    } else {
+      setFromLabel(raw);
+    }
+  }
+
+  static void reset() {
+    category = VendorCategory.talent;
+    vendorName = 'Vendor';
+    vendorCity = '';
+    _profileLoaded = false;
+  }
+
+  static bool get profileLoaded => _profileLoaded;
+
+  /// Maps the registration dropdown label → category.
   static void setFromLabel(String label) {
     category = switch (label) {
       'Photography' => VendorCategory.photography,

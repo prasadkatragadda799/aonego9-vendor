@@ -38,9 +38,6 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() { _loading = true; _error = ''; });
     try {
       if (_register) {
-        // Category is only chosen at signup — the vendor declares their
-        // business type once, here; every later sign-in reads it back
-        // from the server instead of asking again.
         await _repo.register(
           name: _company.text.trim().isEmpty ? _email.text.split('@').first : _company.text.trim(),
           company: _company.text.trim(),
@@ -48,15 +45,10 @@ class _LoginScreenState extends State<LoginScreen> {
           password: _password.text,
           category: _category,
         );
+        VendorSession.setVendorFromProfile(await _repo.myProfile());
       } else {
         await _repo.login(_email.text.trim(), _password.text);
-      }
-      try {
-        // Sets VendorSession.category from the server's own record —
-        // the single source of truth for an existing vendor's category.
         VendorSession.setVendorFromProfile(await _repo.myProfile());
-      } catch (_) {
-        // non-blocking — the shell falls back to the default label
       }
       if (mounted) context.go('/dashboard');
     } catch (e) {
@@ -82,7 +74,9 @@ class _LoginScreenState extends State<LoginScreen> {
       onSwitch: () => setState(() { _register = !_register; _error = ''; }),
       onSubmit: _submit,
     );
-    final cfg = categoryConfigs[_catFromLabel(_category)]!;
+    final cfg = _register
+        ? categoryConfigs[_catFromLabel(_category)]!
+        : categoryConfigs[VendorCategory.talent]!;
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: Responsive.isMobile(context)
