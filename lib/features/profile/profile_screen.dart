@@ -13,15 +13,17 @@ import '../../data/repositories/vendor_repository.dart';
 import '../../data/upload_service.dart';
 import 'profile_details_section.dart';
 
-/// One portfolio work — mirrors the consumer app's gallery item shape
-/// (a cover, a category tag, a headline, and a description underneath).
+/// One portfolio work — mirrors the consumer app's gallery item shape.
 class PortfolioWork {
+  static const maxImages = 8;
+
   final String? id;
   String headline;
   String description;
   String tag;
   String emoji;
   String imageUrl;
+  List<String> imageUrls;
   int bg;
   bool featured;
   PortfolioWork({
@@ -31,30 +33,47 @@ class PortfolioWork {
     required this.tag,
     required this.emoji,
     this.imageUrl = '',
+    List<String>? imageUrls,
     this.bg = 0,
     this.featured = false,
-  });
+  }) : imageUrls = imageUrls ?? (imageUrl.isNotEmpty ? [imageUrl] : []);
 
-  factory PortfolioWork.fromJson(Map<String, dynamic> j) => PortfolioWork(
-        id: j['id'] as String?,
-        headline: j['headline'] as String? ?? '',
-        description: j['description'] as String? ?? '',
-        tag: j['tag'] as String? ?? '',
-        emoji: j['emoji'] as String? ?? '🖼️',
-        imageUrl: j['image_url'] as String? ?? '',
-        bg: (j['bg'] as num?)?.toInt() ?? 0,
-        featured: j['featured'] as bool? ?? false,
-      );
+  String get coverUrl => imageUrls.isNotEmpty ? imageUrls.first : imageUrl;
 
-  Map<String, dynamic> toJson() => {
-        'headline': headline,
-        'description': description,
-        'tag': tag,
-        'emoji': emoji,
-        'image_url': imageUrl,
-        'bg': bg,
-        'featured': featured,
-      };
+  factory PortfolioWork.fromJson(Map<String, dynamic> j) {
+    final urls = (j['images'] as List?)
+            ?.map((e) => e.toString().trim())
+            .where((s) => s.isNotEmpty)
+            .toList() ??
+        <String>[];
+    final legacy = (j['image_url'] as String?)?.trim() ?? '';
+    final images = urls.isNotEmpty ? urls : (legacy.isNotEmpty ? [legacy] : <String>[]);
+    return PortfolioWork(
+      id: j['id'] as String?,
+      headline: j['headline'] as String? ?? '',
+      description: j['description'] as String? ?? '',
+      tag: j['tag'] as String? ?? '',
+      emoji: j['emoji'] as String? ?? '🖼️',
+      imageUrl: images.isNotEmpty ? images.first : legacy,
+      imageUrls: images,
+      bg: (j['bg'] as num?)?.toInt() ?? 0,
+      featured: j['featured'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    final images = imageUrls.isNotEmpty ? imageUrls : (imageUrl.isNotEmpty ? [imageUrl] : <String>[]);
+    return {
+      'headline': headline,
+      'description': description,
+      'tag': tag,
+      'emoji': emoji,
+      'image_url': images.isNotEmpty ? images.first : imageUrl,
+      'images': images,
+      'bg': bg,
+      'featured': featured,
+    };
+  }
 }
 
 class ProfileScreen extends StatefulWidget {
@@ -84,8 +103,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _bioCtrl = TextEditingController();
   String _email = '';
   String _avatarUrl = '';
+  List<String> _galleryUrls = [];
+  static const _maxGalleryImages = 8;
   String _serverCategory = '';
   bool _avatarUploading = false;
+  bool _galleryUploading = false;
   bool _uploadsReady = true;
 
   @override
@@ -130,6 +152,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _cityCtrl.text = (data['city'] ?? '') as String;
         _bioCtrl.text = (data['bio'] ?? '') as String;
         _avatarUrl = (data['avatar_url'] ?? '') as String;
+        _galleryUrls = ((data['gallery_urls'] as List?) ?? [])
+            .map((e) => e.toString().trim())
+            .where((s) => s.isNotEmpty)
+            .take(_maxGalleryImages)
+            .toList();
         _serverCategory = (data['category'] ?? '') as String;
         _rating = ((data['rating'] as num?) ?? 0).toDouble();
         _totalBookings = ((data['total_bookings'] as num?) ?? 0).toInt();
@@ -158,6 +185,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'city': _cityCtrl.text.trim(),
         'bio': _bioCtrl.text.trim(),
         'avatar_url': _avatarUrl,
+        'gallery_urls': _galleryUrls,
       });
       VendorSession.setVendorFromProfile({
         'name': _nameCtrl.text.trim(),
@@ -235,11 +263,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _avatarUrl = url;
         _avatarUploading = false;
       });
-      _toast('Photo uploaded — tap Save Changes to keep it');
+      _toast('Profile photo uploaded — tap Save Changes to keep it');
     } catch (e) {
       if (mounted) setState(() => _avatarUploading = false);
       _toast(_friendlyError(e));
     }
+  }
+
+  Future<void> _addGalleryImage() async {
+    if (_galleryUploading || _galleryUrls.length >= _maxGalleryImages) return;
+    try {
+      final picked = await pickImageFromGallery();
+      if (picked == null) return;
+      setState(() => _galleryUploading = true);
+      final url = await _uploadBytes(
+        bytes: picked.bytes,
+        filename: 'gallery.${picked.extension}',
+        folder: 'portfolio',
+      );
+      if (!mounted) return;
+      setState(() {
+        _galleryUrls = [..._galleryUrls, url].take(_maxGalleryImages).toList();
+        _galleryUploading = false;
+      });
+      _toast('Gallery photo added — tap Save Changes to keep it');
+    } catch (e) {
+      if (mounted) setState(() => _galleryUploading = false);
+      _toast(_friendlyError(e));
+    }
+  }
+
+  void _removeGalleryImage(int index) {
+    setState(() => _galleryUrls = [..._galleryUrls]..removeAt(index));
   }
 
   Widget _avatarWidget(double size) {
@@ -261,7 +316,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (previewBytes != null) {
       return Image.memory(previewBytes, fit: BoxFit.cover, width: double.infinity, height: double.infinity);
     }
-    final url = work?.imageUrl ?? '';
+    final url = work?.coverUrl ?? '';
     if (url.isNotEmpty) {
       return Image.network(
         url,
@@ -530,7 +585,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ]),
             ),
             const SizedBox(height: 6),
-            Text('Tap photo to upload', style: AppType.body(size: 11, color: AppColors.textMuted)),
+            Text('Tap photo for profile picture', style: AppType.body(size: 11, color: AppColors.textMuted)),
+            const SizedBox(height: 16),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Profile gallery (up to $_maxGalleryImages photos)', style: AppType.body(size: 12.5, weight: FontWeight.w600)),
+            ),
+            const SizedBox(height: 8),
+            Text('Shown on your public profile alongside your main photo.', style: AppType.body(size: 11.5, color: AppColors.textMuted, height: 1.4)),
+            const SizedBox(height: 10),
+            _imageUrlGrid(
+              urls: _galleryUrls,
+              uploading: _galleryUploading,
+              maxCount: _maxGalleryImages,
+              onAdd: _addGalleryImage,
+              onRemove: _removeGalleryImage,
+            ),
             const SizedBox(height: 12),
             Text(_displayName, style: AppType.display(size: 17, weight: FontWeight.w600)),
             Text(_profileSubtitle, style: AppType.body(color: AppColors.textMuted, size: 13)),
@@ -665,6 +735,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 decoration: BoxDecoration(color: const Color(0xCC09090B), borderRadius: BorderRadius.circular(20)),
                 child: Text(w.tag.toUpperCase(), style: AppType.eyebrow(color: cfg.accent, size: 8.5)),
               )),
+              if (w.imageUrls.length > 1)
+                Positioned(
+                  bottom: 9,
+                  right: 9,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: const Color(0xCC09090B), borderRadius: BorderRadius.circular(20)),
+                    child: Text('${w.imageUrls.length} photos', style: AppType.body(size: 10, weight: FontWeight.w700, color: Colors.white)),
+                  ),
+                ),
               Positioned(top: 6, right: 6, child: IconButton(
                 visualDensity: VisualDensity.compact,
                 tooltip: w.featured ? 'Featured' : 'Feature this',
@@ -730,6 +810,82 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _imageUrlGrid({
+    required List<String> urls,
+    required bool uploading,
+    required int maxCount,
+    required VoidCallback onAdd,
+    required void Function(int index) onRemove,
+  }) {
+    final cols = responsiveValue(context, mobile: 3, tablet: 4, desktop: 4);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: urls.length + (urls.length < maxCount ? 1 : 0),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: cols,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 1,
+          ),
+          itemBuilder: (_, i) {
+            if (i == urls.length) {
+              return OutlinedButton(
+                onPressed: uploading ? null : onAdd,
+                style: OutlinedButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(72, 72)),
+                child: uploading
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        const Icon(Icons.add_photo_alternate_outlined, size: 22),
+                        const SizedBox(height: 4),
+                        Text('Add', style: AppType.body(size: 10, color: AppColors.textMuted)),
+                      ]),
+              );
+            }
+            final url = urls[i];
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.network(url, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(color: AppColors.surfaceAlt)),
+                ),
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Material(
+                    color: Colors.black54,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: () => onRemove(i),
+                      child: const Padding(padding: EdgeInsets.all(4), child: Icon(Icons.close, size: 14, color: Colors.white)),
+                    ),
+                  ),
+                ),
+                if (i == 0)
+                  Positioned(
+                    left: 6,
+                    bottom: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(color: AppColors.gold, borderRadius: BorderRadius.circular(6)),
+                      child: Text('Cover', style: AppType.body(size: 9, weight: FontWeight.w800, color: const Color(0xFF1A1407))),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 4),
+        Text('${urls.length}/$maxCount photos', style: AppType.body(size: 11, color: AppColors.textMuted)),
+      ],
+    );
+  }
+
   // Add / edit a work via a sheet, with the same fields the user app renders.
   void _editWork(VendorCategoryConfig cfg, PortfolioWork? existing) {
     final headline = TextEditingController(text: existing?.headline ?? '');
@@ -737,12 +893,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final tag = TextEditingController(text: existing?.tag ?? '');
     final emoji = TextEditingController(text: existing?.emoji ?? cfg.label.characters.first);
     bool featured = existing?.featured ?? false;
-    String imageUrl = existing?.imageUrl ?? '';
-    Uint8List? previewBytes;
+    List<String> imageUrls = [...(existing?.imageUrls ?? <String>[])];
     bool uploading = false;
 
-    Future<void> pickAndUpload(void Function(void Function()) setLocal) async {
-      if (uploading) return;
+    Future<void> addWorkPhoto(void Function(void Function()) setLocal) async {
+      if (uploading || imageUrls.length >= PortfolioWork.maxImages) return;
       try {
         _toast('Choose a photo…');
         final picked = await pickImageFromGallery();
@@ -751,10 +906,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           return;
         }
         if (!mounted) return;
-        setLocal(() {
-          previewBytes = picked.bytes;
-          uploading = true;
-        });
+        setLocal(() => uploading = true);
         final url = await _uploadBytes(
           bytes: picked.bytes,
           filename: 'portfolio.${picked.extension}',
@@ -762,11 +914,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
         if (!mounted) return;
         setLocal(() {
-          imageUrl = url;
-          previewBytes = null;
+          imageUrls = [...imageUrls, url].take(PortfolioWork.maxImages).toList();
           uploading = false;
         });
-        _toast('Photo uploaded — fill details and tap Add work');
+        _toast('Photo added (${imageUrls.length}/${PortfolioWork.maxImages})');
       } catch (e) {
         if (mounted) setLocal(() => uploading = false);
         _toast(_friendlyError(e));
@@ -774,23 +925,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     PortfolioWork? previewWork() {
-      if (previewBytes != null) {
-        return PortfolioWork(
-          headline: headline.text,
-          description: desc.text,
-          tag: tag.text,
-          emoji: emoji.text,
-          imageUrl: '',
-        );
-      }
-      final url = imageUrl.isNotEmpty ? imageUrl : (existing?.imageUrl ?? '');
-      if (url.isEmpty) return existing;
+      if (imageUrls.isEmpty) return existing;
       return PortfolioWork(
-        headline: existing?.headline ?? headline.text,
-        description: existing?.description ?? '',
-        tag: existing?.tag ?? '',
-        emoji: existing?.emoji ?? '🖼️',
-        imageUrl: url,
+        headline: headline.text,
+        description: desc.text,
+        tag: tag.text,
+        emoji: emoji.text,
+        imageUrls: imageUrls,
+        featured: featured,
       );
     }
 
@@ -819,35 +961,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               Text(existing == null ? 'Add portfolio work' : 'Edit work', style: AppType.display(size: 20, weight: FontWeight.w600)),
               const SizedBox(height: 16),
-              _dlgLabel('Cover photo (shown in user app gallery)'),
-              OutlinedButton.icon(
-                onPressed: uploading ? null : () => pickAndUpload(setLocal),
-                icon: uploading
-                    ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: cfg.accent))
-                    : const Icon(Icons.upload_file_outlined, size: 18),
-                label: Text(imageUrl.isNotEmpty || (existing?.imageUrl.isNotEmpty ?? false) ? 'Change photo' : 'Upload photo'),
+              _dlgLabel('Photos (up to ${PortfolioWork.maxImages}, first is cover)'),
+              _imageUrlGrid(
+                urls: imageUrls,
+                uploading: uploading,
+                maxCount: PortfolioWork.maxImages,
+                onAdd: () => addWorkPhoto(setLocal),
+                onRemove: (i) => setLocal(() => imageUrls = [...imageUrls]..removeAt(i)),
               ),
-              const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: SizedBox(
-                  height: 160,
-                  width: double.infinity,
-                  child: Stack(fit: StackFit.expand, children: [
-                    _portfolioCover(cfg: cfg, work: previewWork(), previewBytes: previewBytes, emojiSize: 48),
-                    if (uploading)
-                      Container(
-                        color: Colors.black54,
-                        alignment: Alignment.center,
-                        child: Column(mainAxisSize: MainAxisSize.min, children: [
-                          SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2, color: cfg.accent)),
-                          const SizedBox(height: 10),
-                          Text('Uploading photo…', style: AppType.body(size: 12, weight: FontWeight.w600, color: Colors.white)),
-                        ]),
-                      ),
-                  ]),
+              if (imageUrls.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: SizedBox(
+                    height: 160,
+                    width: double.infinity,
+                    child: _portfolioCover(cfg: cfg, work: previewWork(), emojiSize: 48),
+                  ),
                 ),
-              ),
+              ],
               const SizedBox(height: 14),
               _dlgLabel('Headline'),
               TextField(controller: headline, decoration: const InputDecoration(hintText: 'e.g. Vogue India Editorial')),
@@ -893,13 +1025,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       }
                       setLocal(() => uploading = true);
                       try {
-                        final finalImageUrl = imageUrl.isNotEmpty ? imageUrl : (existing?.imageUrl ?? '');
                         final payload = {
                           'headline': headline.text.trim(),
                           'description': desc.text.trim(),
                           'tag': tag.text.trim().isEmpty ? cfg.label : tag.text.trim(),
                           'emoji': emoji.text.trim().isEmpty ? '🖼️' : emoji.text.trim(),
-                          'image_url': finalImageUrl,
+                          'images': imageUrls,
+                          'image_url': imageUrls.isNotEmpty ? imageUrls.first : '',
                           'featured': featured,
                         };
                         if (existing == null) {
