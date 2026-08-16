@@ -742,9 +742,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     bool uploading = false;
 
     Future<void> pickAndUpload(void Function(void Function()) setLocal) async {
+      if (uploading) return;
       try {
+        _toast('Choose a photo…');
         final picked = await pickImageFromGallery();
-        if (picked == null) return;
+        if (picked == null) {
+          _toast('No photo selected');
+          return;
+        }
+        if (!mounted) return;
         setLocal(() {
           previewBytes = picked.bytes;
           uploading = true;
@@ -754,20 +760,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
           filename: 'portfolio.${picked.extension}',
           folder: 'portfolio',
         );
+        if (!mounted) return;
         setLocal(() {
           imageUrl = url;
           previewBytes = null;
           uploading = false;
         });
-        _toast('Photo uploaded — finish the form and tap Save');
+        _toast('Photo uploaded — fill details and tap Add work');
       } catch (e) {
-        setLocal(() => uploading = false);
+        if (mounted) setLocal(() => uploading = false);
         _toast(_friendlyError(e));
       }
     }
 
     PortfolioWork? previewWork() {
-      if (previewBytes != null) return null;
+      if (previewBytes != null) {
+        return PortfolioWork(
+          headline: headline.text,
+          description: desc.text,
+          tag: tag.text,
+          emoji: emoji.text,
+          imageUrl: '',
+        );
+      }
       final url = imageUrl.isNotEmpty ? imageUrl : (existing?.imageUrl ?? '');
       if (url.isEmpty) return existing;
       return PortfolioWork(
@@ -818,7 +833,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: SizedBox(
                   height: 160,
                   width: double.infinity,
-                  child: _portfolioCover(cfg: cfg, work: previewWork(), previewBytes: previewBytes, emojiSize: 48),
+                  child: Stack(fit: StackFit.expand, children: [
+                    _portfolioCover(cfg: cfg, work: previewWork(), previewBytes: previewBytes, emojiSize: 48),
+                    if (uploading)
+                      Container(
+                        color: Colors.black54,
+                        alignment: Alignment.center,
+                        child: Column(mainAxisSize: MainAxisSize.min, children: [
+                          SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2, color: cfg.accent)),
+                          const SizedBox(height: 10),
+                          Text('Uploading photo…', style: AppType.body(size: 12, weight: FontWeight.w600, color: Colors.white)),
+                        ]),
+                      ),
+                  ]),
                 ),
               ),
               const SizedBox(height: 14),

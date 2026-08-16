@@ -1,9 +1,21 @@
 import 'dart:async';
+import 'dart:convert';
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 import 'dart:typed_data';
 
 import 'image_pick_util.dart';
+
+Uint8List? _bytesFromReaderResult(dynamic result) {
+  if (result is ByteBuffer) return result.asUint8List();
+  if (result is Uint8List) return result;
+  if (result is String && result.startsWith('data:')) {
+    final comma = result.indexOf(',');
+    if (comma == -1) return null;
+    return base64Decode(result.substring(comma + 1));
+  }
+  return null;
+}
 
 Future<PickedImageFile?> pickImagePlatform() {
   final completer = Completer<PickedImageFile?>();
@@ -24,18 +36,19 @@ Future<PickedImageFile?> pickImagePlatform() {
       finish(null);
       return;
     }
+    final name = file.name.trim().isNotEmpty ? file.name.trim() : 'photo.jpg';
     final reader = html.FileReader();
     reader.onError.listen((_) => finish(null));
     reader.onLoadEnd.listen((_) {
-      final result = reader.result;
-      if (result is! ByteBuffer) {
+      final bytes = _bytesFromReaderResult(reader.result);
+      if (bytes == null || bytes.isEmpty) {
         finish(null);
         return;
       }
-      final name = file.name.trim().isNotEmpty ? file.name.trim() : 'photo.jpg';
-      finish(PickedImageFile(bytes: result.asUint8List(), filename: name));
+      finish(PickedImageFile(bytes: bytes, filename: name));
     });
-    reader.readAsArrayBuffer(file);
+    // Data URLs decode reliably across Flutter web targets.
+    reader.readAsDataUrl(file);
   });
 
   input.click();
