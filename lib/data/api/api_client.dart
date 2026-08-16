@@ -68,8 +68,15 @@ class ApiClient {
     throw ApiException(res.statusCode, detail);
   }
 
+  static Future<void> _clearSessionOnAuthFailure(int statusCode) async {
+    if (statusCode == 401 || statusCode == 403) {
+      await clearTokens();
+    }
+  }
+
   static Future<dynamic> get(String path) async {
     final res = await http.get(Uri.parse('$kBaseUrl$path'), headers: await _headers());
+    await _clearSessionOnAuthFailure(res.statusCode);
     return _decode(res);
   }
 
@@ -79,6 +86,7 @@ class ApiClient {
       headers: await _headers(auth: auth),
       body: jsonEncode(body),
     );
+    await _clearSessionOnAuthFailure(res.statusCode);
     return _decode(res);
   }
 
@@ -88,6 +96,7 @@ class ApiClient {
       headers: await _headers(),
       body: jsonEncode(body),
     );
+    await _clearSessionOnAuthFailure(res.statusCode);
     return _decode(res);
   }
 
@@ -97,11 +106,13 @@ class ApiClient {
       headers: await _headers(),
       body: body != null ? jsonEncode(body) : null,
     );
+    await _clearSessionOnAuthFailure(res.statusCode);
     return _decode(res);
   }
 
   static Future<void> delete(String path) async {
     final res = await http.delete(Uri.parse('$kBaseUrl$path'), headers: await _headers());
+    await _clearSessionOnAuthFailure(res.statusCode);
     if (res.statusCode >= 300) _decode(res);
   }
 
@@ -124,6 +135,7 @@ class ApiClient {
     ));
     final streamed = await request.send();
     final res = await http.Response.fromStream(streamed);
+    await _clearSessionOnAuthFailure(res.statusCode);
     return (_decode(res) as Map).cast<String, dynamic>();
   }
 }

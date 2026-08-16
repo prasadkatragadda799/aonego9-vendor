@@ -41,12 +41,19 @@ Future<void> ensureVendorSession() async {
 final appRouter = GoRouter(
   initialLocation: '/login',
   redirect: (context, state) async {
+    final path = state.uri.path;
+    if (path == '/' || path.isEmpty) {
+      final loggedIn = await ApiClient.isLoggedIn();
+      return loggedIn ? '/dashboard' : '/login';
+    }
+
     final loggedIn = await ApiClient.isLoggedIn();
-    final onLogin = state.matchedLocation == '/login';
+    final onLogin = path == '/login';
 
     if (onLogin) {
       if (loggedIn) {
         await ensureVendorSession();
+        if (!await ApiClient.isLoggedIn()) return '/login';
         return '/dashboard';
       }
       return null;
@@ -54,13 +61,26 @@ final appRouter = GoRouter(
 
     if (!loggedIn) {
       _vendorSessionReady = false;
+      VendorSession.reset();
       return '/login';
     }
 
     await ensureVendorSession();
+    if (!await ApiClient.isLoggedIn()) {
+      _vendorSessionReady = false;
+      VendorSession.reset();
+      return '/login';
+    }
     return null;
   },
   routes: [
+    GoRoute(
+      path: '/',
+      redirect: (_, __) async {
+        final loggedIn = await ApiClient.isLoggedIn();
+        return loggedIn ? '/dashboard' : '/login';
+      },
+    ),
     GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
     ShellRoute(
       builder: (context, state, child) => AppShell(currentRoute: state.uri.path, child: child),
@@ -80,5 +100,16 @@ final appRouter = GoRouter(
       ],
     ),
   ],
-  errorBuilder: (_, __) => const Scaffold(body: Center(child: Text('Page not found'))),
+  errorBuilder: (context, state) => Scaffold(
+    body: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('Page not found'),
+          const SizedBox(height: 12),
+          TextButton(onPressed: () => context.go('/login'), child: const Text('Go to login')),
+        ],
+      ),
+    ),
+  ),
 );
