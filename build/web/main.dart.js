@@ -54261,34 +54261,36 @@ break}p.N(new A.aJO(p,n,m,l,k,j))
 case 1:return A.E(q,r)}})
 return A.F($async$l3,r)},
 oN(a){return this.ad9(a)},
-ad9(a){var s=0,r=A.G(t.H),q,p=this,o,n
+ad9(a){var s=0,r=A.G(t.H),q,p=this,o,n,m,l
 var $async$oN=A.C(function(b,c){if(b===1)return A.D(c,r)
-for(;;)switch(s){case 0:o=a.a
-n=p.f
-if(o===(n==null?null:n.a)){s=1
+for(;;)switch(s){case 0:m=a.a
+l=p.f
+if(m===(l==null?null:l.a)){s=1
 break}if(p.gVL()!=null){s=1
 break}s=a.c===0?3:4
 break
-case 3:n=p.c
-n.toString
+case 3:l=p.c
+l.toString
 s=5
-return A.p(A.wB(new A.aJM(a),n,t.y),$async$oN)
+return A.p(A.wB(new A.aJM(a),l,t.y),$async$oN)
 case 5:if(c!==!0){s=1
 break}if(p.c==null){s=1
 break}s=6
-return A.p(p.d.xM(o,""),$async$oN)
-case 6:s=7
+return A.p(p.d.xM(m,""),$async$oN)
+case 6:o=c
+s=7
 return A.p(p.l3(),$async$oN)
-case 7:o=p.c
-if(o==null){s=1
-break}o.ag(t.Pu).f.qC(A.X_(null,null,null,null,null,B.M,null,A.Y("You are now on the "+a.b+" plan",null,null,null,null,null,null),null,B.eS,null,null,null,null,null,null,null,null,null,null))
+case 7:m=p.c
+if(m==null){s=1
+break}n=o.x==="approved"?"You are now on the "+a.b+" plan":"Request submitted \u2014 admin will review shortly"
+m.ag(t.Pu).f.qC(A.X_(null,null,null,null,null,B.M,null,A.Y(n,null,null,null,null,null,null),null,B.eS,null,null,null,null,null,null,null,null,null,null))
 s=1
 break
 case 4:if(p.x==null){s=1
-break}o=p.c
-o.toString
+break}m=p.c
+m.toString
 s=8
-return A.p(A.wB(new A.aJN(p,a),o,t.H),$async$oN)
+return A.p(A.wB(new A.aJN(p,a),m,t.H),$async$oN)
 case 8:case 1:return A.E(q,r)}})
 return A.F($async$oN,r)},
 F(a){var s,r,q,p,o,n,m,l,k,j,i,h,g,f,e=this,d=null

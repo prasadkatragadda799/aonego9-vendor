@@ -83,10 +83,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       );
       if (confirmed != true) return;
       if (!mounted) return;
-      await _repo.requestSubscription(p.id, '');
+      final req = await _repo.requestSubscription(p.id, '');
       await _load();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('You are now on the ${p.name} plan')));
+      final msg = req.status == 'approved'
+          ? 'You are now on the ${p.name} plan'
+          : 'Request submitted — admin will review shortly';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
       return;
     }
 
