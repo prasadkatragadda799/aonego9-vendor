@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import '../../core/utils/date_util.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -180,7 +181,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
             ),
             const SizedBox(height: 4),
-            Text('Submitted ${df.format(r.createdAt)}', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            Text('Submitted ${formatIstDateTime(r.createdAt)}', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
           ]),
         ),
       ]),

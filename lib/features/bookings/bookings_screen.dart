@@ -112,11 +112,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                     ]),
                   ] else if (b.status == BookingStatus.confirmed) ...[
                     const SizedBox(height: 14),
-                    Row(children: [
-                      OutlinedButton.icon(onPressed: () => context.go('/messages'), icon: const Icon(Icons.chat_bubble_outline, size: 16), label: const Text('Message client')),
-                      const SizedBox(width: 10),
-                      OutlinedButton(onPressed: () => _respond(b, BookingStatus.inProgress), child: const Text('Mark in progress')),
-                    ]),
+                    OutlinedButton(onPressed: () => _respond(b, BookingStatus.inProgress), child: const Text('Mark in progress')),
                   ],
                 ]),
               ),

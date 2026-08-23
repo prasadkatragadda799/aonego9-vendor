@@ -13,6 +13,7 @@ import '../../features/roster/roster_screen.dart';
 import '../../features/profile/profile_screen.dart';
 import '../../features/earnings/earnings_screen.dart';
 import '../../features/subscription/subscription_screen.dart';
+import '../../features/newsletter/newsletter_screen.dart';
 import '../../features/reviews/reviews_screen.dart';
 import '../../features/messages/messages_screen.dart';
 import '../../features/notifications/notifications_screen.dart';
@@ -93,6 +94,7 @@ final appRouter = GoRouter(
         GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
         GoRoute(path: '/earnings', builder: (_, __) => const EarningsScreen()),
         GoRoute(path: '/subscription', builder: (_, __) => const SubscriptionScreen()),
+        GoRoute(path: '/newsletter', builder: (_, __) => const VendorNewsletterScreen()),
         GoRoute(path: '/reviews', builder: (_, __) => const ReviewsScreen()),
         GoRoute(path: '/messages', builder: (_, __) => const MessagesScreen()),
         GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),

@@ -32,7 +32,39 @@ class _LoginScreenState extends State<LoginScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _company = TextEditingController();
+  final _phone = TextEditingController();
+  final _otp = TextEditingController();
+  String _otpHint = '';
+  bool _otpSending = false;
   final _repo = VendorRepository();
+
+  @override
+  void dispose() {
+    _email.dispose();
+    _password.dispose();
+    _company.dispose();
+    _phone.dispose();
+    _otp.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendOtp() async {
+    if (_phone.text.trim().length < 10) {
+      setState(() => _error = 'Enter a valid mobile number first.');
+      return;
+    }
+    setState(() { _otpSending = true; _error = ''; _otpHint = ''; });
+    try {
+      final res = await _repo.sendOtp(_phone.text.trim(), purpose: 'vendor_register');
+      setState(() {
+        _otpHint = res['debug_code'] != null ? 'Dev OTP: ${res['debug_code']}' : 'OTP sent to your phone.';
+      });
+    } catch (e) {
+      setState(() => _error = 'Could not send OTP.');
+    } finally {
+      if (mounted) setState(() => _otpSending = false);
+    }
+  }
 
   Future<void> _submit() async {
     setState(() { _loading = true; _error = ''; });
@@ -43,6 +75,8 @@ class _LoginScreenState extends State<LoginScreen> {
           company: _company.text.trim(),
           email: _email.text.trim(),
           password: _password.text,
+          phone: _phone.text.trim(),
+          phoneOtp: _otp.text.trim(),
           category: _category,
         );
         VendorSession.setVendorFromProfile(await _repo.myProfile());
@@ -73,6 +107,12 @@ class _LoginScreenState extends State<LoginScreen> {
       onToggleObscure: () => setState(() => _obscure = !_obscure),
       onSwitch: () => setState(() { _register = !_register; _error = ''; }),
       onSubmit: _submit,
+      phone: _phone,
+      otp: _otp,
+      otpHint: _otpHint,
+      otpSending: _otpSending,
+      onSendOtp: _sendOtp,
+      onPlans: () => context.go('/subscription'),
     );
     final cfg = _register
         ? categoryConfigs[_catFromLabel(_category)]!
@@ -144,32 +184,54 @@ class _BrandPanel extends StatelessWidget {
 }
 
 class _AuthForm extends StatelessWidget {
-  final bool register, obscure, loading;
-  final TextEditingController email, password, company;
-  final String category, error;
+  final bool register, obscure, loading, otpSending;
+  final TextEditingController email, password, company, phone, otp;
+  final String category, error, otpHint;
   final ValueChanged<String> onCategory;
-  final VoidCallback onToggleObscure, onSwitch, onSubmit;
+  final VoidCallback onToggleObscure, onSwitch, onSubmit, onSendOtp, onPlans;
   const _AuthForm({
     required this.register,
     required this.email,
     required this.password,
     required this.company,
+    required this.phone,
+    required this.otp,
     required this.obscure,
     required this.loading,
+    required this.otpSending,
     required this.error,
     required this.category,
+    required this.otpHint,
     required this.onCategory,
     required this.onToggleObscure,
     required this.onSwitch,
     required this.onSubmit,
+    required this.onSendOtp,
+    required this.onPlans,
   });
 
   @override
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-      Text(register ? 'Create vendor account' : 'Vendor sign in', style: Theme.of(context).textTheme.headlineSmall),
-      const SizedBox(height: 6),
-      Text(register ? 'Start listing your services in minutes' : 'Welcome back to your vendor console', style: const TextStyle(color: AppColors.textSecondary)),
+      Row(children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: AppColors.gold.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.gold.withValues(alpha: 0.35)),
+          ),
+          child: const Icon(Icons.storefront_outlined, color: AppColors.gold, size: 24),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(register ? 'Create vendor account' : 'Vendor sign in', style: Theme.of(context).textTheme.headlineSmall),
+            Text(register ? 'Start listing your services in minutes' : 'Welcome back to your vendor console', style: const TextStyle(color: AppColors.textSecondary)),
+          ]),
+        ),
+      ]),
       const SizedBox(height: 28),
       if (error.isNotEmpty) ...[
         Container(
@@ -197,6 +259,19 @@ class _AuthForm extends StatelessWidget {
         ),
       ),
       if (register) ...[
+        const SizedBox(height: 16),
+        const _Label('Mobile number'),
+        TextField(controller: phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(hintText: '+91 98765 43210')),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(child: TextField(controller: otp, keyboardType: TextInputType.number, decoration: const InputDecoration(hintText: 'OTP'))),
+          const SizedBox(width: 10),
+          OutlinedButton(onPressed: otpSending ? null : onSendOtp, child: Text(otpSending ? '…' : 'Send OTP')),
+        ]),
+        if (otpHint.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(otpHint, style: const TextStyle(color: AppColors.gold, fontSize: 12)),
+        ],
         const SizedBox(height: 16),
         const _Label('Category'),
         Container(
@@ -231,6 +306,13 @@ class _AuthForm extends StatelessWidget {
         ),
       ),
       const SizedBox(height: 16),
+      Center(
+        child: TextButton.icon(
+          onPressed: onPlans,
+          icon: const Icon(Icons.workspace_premium_outlined, size: 18),
+          label: const Text('View subscription plans'),
+        ),
+      ),
       Center(
         child: TextButton(
           onPressed: onSwitch,

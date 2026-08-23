@@ -22,15 +22,21 @@ class VendorRepository {
     required String email,
     required String password,
     String phone = '',
+    String phoneOtp = '',
     String city = '',
     String category = '',
   }) async {
     final data = await ApiClient.post('/auth/register/vendor', {
       'name': name, 'company': company, 'email': email,
       'password': password, 'phone': phone, 'city': city, 'category': category,
+      if (phoneOtp.isNotEmpty) 'phone_otp': phoneOtp,
     }, auth: false);
     await ApiClient.saveTokens(data['access_token'], data['refresh_token']);
     return data;
+  }
+
+  Future<Map<String, dynamic>> sendOtp(String phone, {String purpose = 'vendor_register'}) async {
+    return await ApiClient.post('/auth/otp/send', {'phone': phone, 'purpose': purpose}, auth: false) as Map<String, dynamic>;
   }
 
   Future<void> logout() async {

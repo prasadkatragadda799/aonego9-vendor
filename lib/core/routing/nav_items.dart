@@ -25,6 +25,7 @@ List<NavItem> vendorNavFor(VendorCategory category) {
 
     const NavItem('Earnings', Icons.account_balance_wallet_outlined, '/earnings', section: 'Business'),
     const NavItem('Subscription', Icons.workspace_premium_outlined, '/subscription', section: 'Business'),
+    const NavItem('Newsletter', Icons.auto_stories_outlined, '/newsletter', section: 'Business'),
     const NavItem('Reviews', Icons.star_outline, '/reviews', section: 'Business'),
     const NavItem('Messages', Icons.chat_bubble_outline, '/messages', section: 'Business'),
 

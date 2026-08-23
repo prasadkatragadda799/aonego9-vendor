@@ -890,7 +890,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _editWork(VendorCategoryConfig cfg, PortfolioWork? existing) {
     final headline = TextEditingController(text: existing?.headline ?? '');
     final desc = TextEditingController(text: existing?.description ?? '');
-    final tag = TextEditingController(text: existing?.tag ?? '');
+    final tag = TextEditingController(text: existing?.tag ?? cfg.serviceCategoryHint);
+    final tagOptions = portfolioTagOptions[cfg.category] ?? [cfg.serviceCategoryHint];
+    var selectedTag = tagOptions.contains(tag.text) ? tag.text : tagOptions.first;
     final emoji = TextEditingController(text: existing?.emoji ?? cfg.label.characters.first);
     bool featured = existing?.featured ?? false;
     List<String> imageUrls = [...(existing?.imageUrls ?? <String>[])];
@@ -990,7 +992,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Row(children: [
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   _dlgLabel('Category tag'),
-                  TextField(controller: tag, decoration: const InputDecoration(hintText: 'Editorial')),
+                  DropdownButtonFormField<String>(
+                    value: selectedTag,
+                    decoration: const InputDecoration(hintText: 'Pick a tag'),
+                    items: [for (final t in tagOptions) DropdownMenuItem(value: t, child: Text(t))],
+                    onChanged: (v) => setLocal(() {
+                      selectedTag = v ?? tagOptions.first;
+                      tag.text = selectedTag;
+                    }),
+                  ),
                 ])),
                 const SizedBox(width: 12),
                 SizedBox(width: 96, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1028,7 +1038,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         final payload = {
                           'headline': headline.text.trim(),
                           'description': desc.text.trim(),
-                          'tag': tag.text.trim().isEmpty ? cfg.label : tag.text.trim(),
+                          'tag': selectedTag.trim().isEmpty ? cfg.serviceCategoryHint : selectedTag.trim(),
                           'emoji': emoji.text.trim().isEmpty ? '🖼️' : emoji.text.trim(),
                           'images': imageUrls,
                           'image_url': imageUrls.isNotEmpty ? imageUrls.first : '',

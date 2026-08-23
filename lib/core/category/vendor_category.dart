@@ -256,6 +256,15 @@ class VendorSession {
   }
 }
 
+/// Portfolio category tags fixed per vendor module (matches user-app browse filters).
+const Map<VendorCategory, List<String>> portfolioTagOptions = {
+  VendorCategory.talent: ['Fashion', 'Ethnic', 'Ramp', 'Film', 'Commercial', 'Fitness'],
+  VendorCategory.photography: ['Fashion', 'Wedding', 'Commercial', 'Portrait'],
+  VendorCategory.videography: ['Brand Films', 'Wedding', 'Social Media', 'Documentary'],
+  VendorCategory.venue: ['Indoor', 'Outdoor', 'Rooftop', 'Heritage'],
+  VendorCategory.events: ['Fashion Shows', 'Corporate', 'Wedding Events', 'Concerts'],
+};
+
 /// Accent helper used where a category tint is wanted instead of gold.
 Color categoryAccent() => VendorSession.config.accent;
 

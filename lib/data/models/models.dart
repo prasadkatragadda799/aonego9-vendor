@@ -3,6 +3,8 @@
 // backend dev can map API responses without touching the UI.
 // ─────────────────────────────────────────────────────────────
 
+import '../../core/utils/date_util.dart';
+
 enum BookingStatus { requested, confirmed, inProgress, completed, cancelled, disputed }
 
 /// How a booking reached the vendor — directly, or from a user inquiry
@@ -327,8 +329,8 @@ class SubscriptionRequest {
         receiptImage: j['receipt_image'] ?? '',
         status: j['status'] ?? 'pending',
         adminNote: j['admin_note'],
-        createdAt: DateTime.tryParse(j['created_at'] ?? '') ?? DateTime.now(),
-        reviewedAt: j['reviewed_at'] != null ? DateTime.tryParse(j['reviewed_at']) : null,
+        createdAt: parseApiDateTime(j['created_at']?.toString() ?? ''),
+        reviewedAt: j['reviewed_at'] != null ? parseApiDateTime(j['reviewed_at'].toString()) : null,
       );
 }
 
