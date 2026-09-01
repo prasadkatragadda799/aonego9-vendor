@@ -77,6 +77,7 @@ class _MobileScaffold extends StatelessWidget {
       appBar: AppBar(
         title: const _BrandMark(compact: true),
         actions: [
+          const ThemeCycleButton(),
           IconButton(onPressed: () => context.go('/notifications'), icon: const Icon(Icons.notifications_none, size: 22)),
           Padding(padding: const EdgeInsets.only(right: 12), child: InitialsAvatar(name: VendorSession.vendorName, size: 30)),
         ],
@@ -109,11 +110,11 @@ class _Sidebar extends StatelessWidget {
     String? lastSection;
     return Container(
       width: width,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF13151B), AppColors.sidebar],
+          colors: [const Color(0xFF13151B), AppColors.sidebar],
         ),
         border: Border(right: BorderSide(color: AppColors.border)),
       ),
@@ -262,7 +263,7 @@ class _TopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 64,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.bg,
         border: Border(bottom: BorderSide(color: AppColors.border)),
       ),
@@ -276,7 +277,7 @@ class _TopBar extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
             child: Row(children: [
-              const Icon(Icons.search, size: 18, color: AppColors.textMuted),
+              Icon(Icons.search, size: 18, color: AppColors.textMuted),
               const SizedBox(width: 8),
               Text('Search bookings, clients…', style: AppType.body(size: 13, color: AppColors.textMuted)),
             ]),
@@ -320,7 +321,7 @@ class _BrandMark extends StatelessWidget {
     final logo = Container(
       width: 36, height: 36, alignment: Alignment.center,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [AppColors.goldLight, AppColors.goldDark]),
+        gradient: LinearGradient(colors: [AppColors.goldLight, AppColors.goldDark]),
         borderRadius: BorderRadius.circular(10),
         boxShadow: [BoxShadow(color: AppColors.gold.withValues(alpha: 0.35), blurRadius: 14, offset: const Offset(0, 4))],
       ),

@@ -65,12 +65,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Expanded(child: Text(n.title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14))),
-            if (n.unread) const Padding(padding: EdgeInsets.only(left: 8), child: CircleAvatar(radius: 4, backgroundColor: AppColors.gold)),
+            if (n.unread) Padding(padding: const EdgeInsets.only(left: 8), child: CircleAvatar(radius: 4, backgroundColor: AppColors.gold)),
           ]),
           const SizedBox(height: 3),
-          Text(n.body, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4)),
+          Text(n.body, style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4)),
           const SizedBox(height: 4),
-          Text(DateFormat('d MMM, HH:mm').format(n.time), style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+          Text(DateFormat('d MMM, HH:mm').format(n.time), style: TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
         ])),
       ]),
     );

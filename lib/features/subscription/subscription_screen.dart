@@ -150,12 +150,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
       ),
       child: Row(children: [
-        const Icon(Icons.trending_up, size: 18, color: AppColors.gold),
+        Icon(Icons.trending_up, size: 18, color: AppColors.gold),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
             "You're on the ${_sub!.planName} plan — upgrade for more",
-            style: const TextStyle(color: AppColors.gold, fontWeight: FontWeight.w600, fontSize: 13),
+            style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.w600, fontSize: 13),
           ),
         ),
       ]),
@@ -163,7 +163,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   Widget _pendingCard(SubscriptionRequest r) {
-    final df = DateFormat('d MMM yyyy, h:mm a');
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -172,7 +171,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         border: Border.all(color: AppColors.warning.withValues(alpha: 0.35)),
       ),
       child: Row(children: [
-        const Icon(Icons.hourglass_top_rounded, color: AppColors.warning, size: 22),
+        Icon(Icons.hourglass_top_rounded, color: AppColors.warning, size: 22),
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -181,7 +180,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
             ),
             const SizedBox(height: 4),
-            Text('Submitted ${formatIstDateTime(r.createdAt)}', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            Text('Submitted ${formatIstDateTime(r.createdAt)}', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
           ]),
         ),
       ]),
@@ -202,20 +201,20 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              const Text('Current plan', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+              Text('Current plan', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
               const SizedBox(width: 10),
               StatusChip(label: s.status == 'active' ? 'Active' : s.status, color: AppColors.success),
             ]),
             const SizedBox(height: 8),
-            Text(s.planName, style: const TextStyle(color: AppColors.gold, fontWeight: FontWeight.w800, fontSize: 26)),
+            Text(s.planName, style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.w800, fontSize: 26)),
             const SizedBox(height: 4),
             Text(
               s.price == 0 ? 'Free forever' : '${cur.format(s.price)} / month · renews ${DateFormat('d MMM yyyy').format(s.renewsOn)}',
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5),
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12.5),
             ),
           ]),
         ),
-        const Icon(Icons.workspace_premium_outlined, color: AppColors.gold, size: 40),
+        Icon(Icons.workspace_premium_outlined, color: AppColors.gold, size: 40),
       ]),
     );
   }
@@ -238,21 +237,21 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           Row(children: [
             Text(p.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
             const Spacer(),
-            if (p.recommended) const StatusChip(label: 'Popular', color: AppColors.gold),
+            if (p.recommended) StatusChip(label: 'Popular', color: AppColors.gold),
           ]),
           const SizedBox(height: 10),
           Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
             Text(p.price == 0 ? 'Free' : cur.format(p.price), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 24)),
-            if (p.price != 0) const Text(' / mo', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+            if (p.price != 0) Text(' / mo', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
           ]),
           const SizedBox(height: 14),
           for (final f in p.features)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Icon(Icons.check_circle, size: 15, color: AppColors.success),
+                Icon(Icons.check_circle, size: 15, color: AppColors.success),
                 const SizedBox(width: 8),
-                Expanded(child: Text(f, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12.5, height: 1.35))),
+                Expanded(child: Text(f, style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5, height: 1.35))),
               ]),
             ),
           const SizedBox(height: 14),
@@ -281,11 +280,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 10),
               child: Row(children: [
-                const Icon(Icons.receipt_long_outlined, size: 18, color: AppColors.textMuted),
+                Icon(Icons.receipt_long_outlined, size: 18, color: AppColors.textMuted),
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(b.description, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13.5)),
-                  Text('${b.id} · ${df.format(b.date)}', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                  Text('${b.id} · ${df.format(b.date)}', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                 ])),
                 Text(cur.format(b.amount), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
                 const SizedBox(width: 12),
@@ -371,7 +370,7 @@ class _PaymentDialogState extends State<_PaymentDialog> {
               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'Scan with any UPI app to pay, then upload the receipt below',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textMuted, fontSize: 12),
@@ -383,7 +382,7 @@ class _PaymentDialogState extends State<_PaymentDialog> {
               child: QrImageView(data: _upiLink, size: 180, backgroundColor: Colors.white),
             ),
             const SizedBox(height: 8),
-            Text(widget.payment.upiId, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            Text(widget.payment.upiId, style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
             const SizedBox(height: 18),
             if (_imageBytes != null) ...[
               ClipRRect(

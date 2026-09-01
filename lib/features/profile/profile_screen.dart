@@ -369,7 +369,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               border: Border.all(color: AppColors.danger.withValues(alpha: 0.4)),
             ),
             child: Row(children: [
-              const Icon(Icons.error_outline, size: 16, color: AppColors.danger),
+              Icon(Icons.error_outline, size: 16, color: AppColors.danger),
               const SizedBox(width: 8),
               Expanded(child: Text(_error, style: AppType.body(size: 12.5, color: AppColors.danger))),
             ]),
@@ -385,7 +385,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               border: Border.all(color: AppColors.warning.withValues(alpha: 0.45)),
             ),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Icon(Icons.cloud_off_outlined, size: 16, color: AppColors.warning),
+              Icon(Icons.cloud_off_outlined, size: 16, color: AppColors.warning),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -569,9 +569,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (_avatarUploading)
                   Positioned.fill(
                     child: Container(
-                      decoration: BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                      decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
                       alignment: Alignment.center,
-                      child: const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold)),
+                      child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.gold)),
                     ),
                   ),
                 Positioned(
@@ -653,13 +653,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
                   Expanded(child: Text(_displayName, style: AppType.display(size: 16, weight: FontWeight.w600))),
-                  const Icon(Icons.verified, size: 16, color: AppColors.gold),
+                  Icon(Icons.verified, size: 16, color: AppColors.gold),
                 ]),
                 const SizedBox(height: 3),
                 Text(_profileSubtitle, style: AppType.body(size: 12, color: AppColors.textMuted)),
                 const SizedBox(height: 10),
                 Row(children: [
-                  const Icon(Icons.star, size: 14, color: AppColors.gold),
+                  Icon(Icons.star, size: 14, color: AppColors.gold),
                   const SizedBox(width: 4),
                   Text(_rating > 0 ? _rating.toStringAsFixed(1) : 'New', style: AppType.body(size: 12.5, weight: FontWeight.w700)),
                   Text('  ·  $_totalBookings bookings', style: AppType.body(size: 12, color: AppColors.textMuted)),
@@ -942,8 +942,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
         side: BorderSide(color: AppColors.border),
       ),
       builder: (ctx) => Padding(

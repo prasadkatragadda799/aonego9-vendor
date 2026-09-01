@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/responsive/responsive.dart';
@@ -49,7 +48,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
     return ListView(
       padding: EdgeInsets.all(responsiveValue(context, mobile: 16, desktop: 28)),
       children: [
-        PageHeader(title: 'Bookings', subtitle: 'Accept new requests and manage your schedule'),
+        const PageHeader(title: 'Bookings', subtitle: 'Accept new requests and manage your schedule'),
         const SizedBox(height: 20),
         Wrap(spacing: 10, runSpacing: 10, children: [
           _tab('All', null),
@@ -72,7 +71,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                   Row(children: [
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Row(children: [
-                        Text(b.id, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                        Text(b.id, style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                         const SizedBox(width: 10),
                         StatusChip(label: label, color: color),
                         if (b.source == BookingSource.inquiry) ...[
@@ -83,9 +82,9 @@ class _BookingsScreenState extends State<BookingsScreen> {
                       const SizedBox(height: 8),
                       Text(b.service, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                       const SizedBox(height: 2),
-                      Text(b.clientName, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      Text(b.clientName, style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
                     ])),
-                    Text(cur.format(b.amount), style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.gold, fontSize: 16)),
+                    Text(cur.format(b.amount), style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.gold, fontSize: 16)),
                   ]),
                   const SizedBox(height: 14),
                   Wrap(spacing: 20, runSpacing: 8, children: [
@@ -100,7 +99,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(color: AppColors.surfaceAlt, borderRadius: BorderRadius.circular(8)),
-                      child: Text(b.notes, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4)),
+                      child: Text(b.notes, style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4)),
                     ),
                   ],
                   if (b.status == BookingStatus.requested) ...[
@@ -125,7 +124,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
   Widget _meta(IconData icon, String text) => Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(icon, size: 15, color: AppColors.textMuted),
         const SizedBox(width: 6),
-        Text(text, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+        Text(text, style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
       ]);
 
   Widget _inquiryTag({String? reference}) => Container(
@@ -136,10 +135,10 @@ class _BookingsScreenState extends State<BookingsScreen> {
           border: Border.all(color: AppColors.info.withValues(alpha: 0.4)),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.forum_outlined, size: 11, color: AppColors.info),
+          Icon(Icons.forum_outlined, size: 11, color: AppColors.info),
           const SizedBox(width: 3),
           Text(reference == null ? 'Inquiry' : 'Inquiry · $reference',
-              style: const TextStyle(color: AppColors.info, fontSize: 10.5, fontWeight: FontWeight.w700)),
+              style: TextStyle(color: AppColors.info, fontSize: 10.5, fontWeight: FontWeight.w700)),
         ]),
       );
 

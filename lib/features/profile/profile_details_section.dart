@@ -44,6 +44,16 @@ class _ProfileDetailsSectionState extends State<ProfileDetailsSection> {
   List<String> _amenities = [];
   List<String> _availability = [];
   List<Map<String, dynamic>> _sceneData = [];
+
+  // Added to close the brief's remaining profile gaps. The marketplace
+  // already parses all four of these out of /profile-details, so anything
+  // saved here appears on the public profile with no further work.
+  List<Map<String, dynamic>> _awards = [];
+  List<Map<String, dynamic>> _brandWork = [];
+  List<Map<String, dynamic>> _projects = [];
+  List<Map<String, dynamic>> _socials = [];
+  late final TextEditingController _dob;
+  late final TextEditingController _hairLength;
   bool _saving = false;
 
   @override
@@ -73,11 +83,23 @@ class _ProfileDetailsSectionState extends State<ProfileDetailsSection> {
     _amenities = ((d['amenities'] as List?) ?? []).cast<String>();
     _availability = ((d['availability'] as List?) ?? []).cast<String>();
     _sceneData = ((d['scene_data'] as List?) ?? []).cast<Map<String, dynamic>>();
+    _dob = TextEditingController(text: cc['dob'] as String? ?? '');
+    _hairLength = TextEditingController(text: cc['hair_length'] as String? ?? '');
+    _awards = _records(d['awards']);
+    _brandWork = _records(d['brand_work']);
+    _projects = _records(d['projects']);
+    _socials = _records(d['socials']);
   }
+
+  /// Tolerates a null, a non-list, or a list with stray non-map entries —
+  /// a partially-filled profile is the normal case, not the exception.
+  static List<Map<String, dynamic>> _records(dynamic raw) => raw is List
+      ? raw.whereType<Map>().map((e) => e.cast<String, dynamic>()).toList()
+      : <Map<String, dynamic>>[];
 
   @override
   void dispose() {
-    for (final c in [_overview, _experience, _training, _languages, _height, _weight, _bust, _chest, _waist, _hip, _shoe, _age, _hair, _eye, _skin]) {
+    for (final c in [_overview, _experience, _training, _languages, _height, _weight, _bust, _chest, _waist, _hip, _shoe, _age, _hair, _eye, _skin, _dob, _hairLength]) {
       c.dispose();
     }
     super.dispose();
@@ -100,8 +122,10 @@ class _ProfileDetailsSectionState extends State<ProfileDetailsSection> {
         'shoe': _shoe.text.trim(),
         'age': age,
         'hair': _hair.text.trim(),
+        'hair_length': _hairLength.text.trim(),
         'eye': _eye.text.trim(),
         'skin': _skin.text.trim(),
+        'dob': _dob.text.trim(),
       },
       'equipment': _equipment,
       'spaces': _spaces,
@@ -110,6 +134,10 @@ class _ProfileDetailsSectionState extends State<ProfileDetailsSection> {
       'amenities': _amenities,
       'availability': _availability,
       'scene_data': _sceneData,
+      'awards': _awards,
+      'brand_work': _brandWork,
+      'projects': _projects,
+      'socials': _socials,
     };
   }
 
@@ -163,8 +191,10 @@ class _ProfileDetailsSectionState extends State<ProfileDetailsSection> {
             _mini('Shoe', _shoe),
             _mini('Age', _age),
             _mini('Hair', _hair),
+            _mini('Hair length', _hairLength),
             _mini('Eyes', _eye),
             _mini('Skin', _skin),
+            _mini('Date of birth', _dob),
           ]),
           const SizedBox(height: 12),
           Row(children: [
@@ -229,6 +259,41 @@ class _ProfileDetailsSectionState extends State<ProfileDetailsSection> {
         if (isEvent) ...[
           _stringListSection('Services managed', _services, (v) => setState(() => _services.add(v)), (i) => setState(() => _services.removeAt(i))),
         ],
+        // Credibility — applies to every vendor type, not just talent.
+        const SizedBox(height: 8),
+        _listSection(
+          'Brand work',
+          _brandWork.length,
+          () => _editBrandWork(null),
+          (i) => _editBrandWork(_brandWork[i], index: i),
+          (i) => setState(() => _brandWork.removeAt(i)),
+          (i) => '${_brandWork[i]['brand'] ?? 'Brand'}'
+              '${'${_brandWork[i]['year'] ?? ''}'.isEmpty ? '' : ' · ${_brandWork[i]['year']}'}',
+        ),
+        _listSection(
+          'Past work & projects',
+          _projects.length,
+          () => _editProject(null),
+          (i) => _editProject(_projects[i], index: i),
+          (i) => setState(() => _projects.removeAt(i)),
+          (i) => '${_projects[i]['title'] ?? 'Project'}',
+        ),
+        _listSection(
+          'Awards & achievements',
+          _awards.length,
+          () => _editAward(null),
+          (i) => _editAward(_awards[i], index: i),
+          (i) => setState(() => _awards.removeAt(i)),
+          (i) => '${_awards[i]['title'] ?? 'Award'}',
+        ),
+        _listSection(
+          'Link in bio',
+          _socials.length,
+          () => _editSocial(null),
+          (i) => _editSocial(_socials[i], index: i),
+          (i) => setState(() => _socials.removeAt(i)),
+          (i) => '${_socials[i]['platform'] ?? ''} · ${_socials[i]['handle'] ?? ''}',
+        ),
       ]),
     );
   }
@@ -481,6 +546,125 @@ class _ProfileDetailsSectionState extends State<ProfileDetailsSection> {
         ),
       ),
     );
+  }
+
+  /// ── Credibility sections ────────────────────────────────────
+  /// Awards, brand work, past projects and link-in-bio. Each stores plain
+  /// maps in the same shape the marketplace parses, so no model is needed
+  /// on either side.
+
+  void _editAward(Map<String, dynamic>? item, {int? index}) {
+    final title = TextEditingController(text: item?['title'] as String? ?? '');
+    final issuer = TextEditingController(text: item?['issuer'] as String? ?? '');
+    final year = TextEditingController(text: item?['year']?.toString() ?? '');
+    final note = TextEditingController(text: item?['note'] as String? ?? '');
+    _mapDialog('Award or achievement', () {}, [title, issuer, year, note], () {
+      if (title.text.trim().isEmpty) return;
+      final map = {
+        'title': title.text.trim(),
+        'issuer': issuer.text.trim(),
+        'year': year.text.trim(),
+        'note': note.text.trim(),
+      };
+      setState(() => index == null ? _awards.add(map) : _awards[index] = map);
+    }, fields: [
+      ('Title', title),
+      ('Awarded by', issuer),
+      ('Year', year),
+      ('Note', note),
+    ]);
+  }
+
+  void _editBrandWork(Map<String, dynamic>? item, {int? index}) {
+    final brand = TextEditingController(text: item?['brand'] as String? ?? '');
+    final division = TextEditingController(text: item?['division'] as String? ?? '');
+    final work = TextEditingController(text: item?['work'] as String? ?? '');
+    final year = TextEditingController(text: item?['year']?.toString() ?? '');
+    final city = TextEditingController(text: item?['city'] as String? ?? '');
+    final logo = TextEditingController(text: item?['logo_url'] as String? ?? '');
+    final link = TextEditingController(text: item?['link'] as String? ?? '');
+    _mapDialog('Brand work', () {}, [brand, division, work, year, city, logo, link], () {
+      if (brand.text.trim().isEmpty) return;
+      final map = {
+        'brand': brand.text.trim(),
+        'division': division.text.trim(),
+        'work': work.text.trim(),
+        'year': year.text.trim(),
+        'city': city.text.trim(),
+        'logo_url': logo.text.trim(),
+        'link': link.text.trim(),
+      };
+      setState(() => index == null ? _brandWork.add(map) : _brandWork[index] = map);
+    }, fields: [
+      ('Brand', brand),
+      ('Brand division', division),
+      ('What you made', work),
+      ('Year', year),
+      ('City', city),
+      ('Logo URL (optional)', logo),
+      ('Link (optional)', link),
+    ]);
+  }
+
+  void _editProject(Map<String, dynamic>? item, {int? index}) {
+    final title = TextEditingController(text: item?['title'] as String? ?? '');
+    final client = TextEditingController(text: item?['client'] as String? ?? '');
+    final role = TextEditingController(text: item?['role'] as String? ?? '');
+    final year = TextEditingController(text: item?['year']?.toString() ?? '');
+    final summary = TextEditingController(text: item?['summary'] as String? ?? '');
+    final image = TextEditingController(text: item?['image_url'] as String? ?? '');
+    final video = TextEditingController(text: item?['video_url'] as String? ?? '');
+    final link = TextEditingController(text: item?['link'] as String? ?? '');
+    _mapDialog('Past work / project', () {}, [title, client, role, year, summary, image, video, link], () {
+      if (title.text.trim().isEmpty) return;
+      final map = {
+        'title': title.text.trim(),
+        'client': client.text.trim(),
+        'role': role.text.trim(),
+        'year': year.text.trim(),
+        'summary': summary.text.trim(),
+        'image_url': image.text.trim(),
+        'video_url': video.text.trim(),
+        'link': link.text.trim(),
+      };
+      setState(() => index == null ? _projects.add(map) : _projects[index] = map);
+    }, fields: [
+      ('Title', title),
+      ('Client / production', client),
+      ('Your role', role),
+      ('Year', year),
+      ('Summary', summary),
+      ('Image URL', image),
+      ('Video URL', video),
+      ('Link', link),
+    ]);
+  }
+
+  void _editSocial(Map<String, dynamic>? item, {int? index}) {
+    final platform = TextEditingController(text: item?['platform'] as String? ?? 'instagram');
+    final handle = TextEditingController(text: item?['handle'] as String? ?? '');
+    final url = TextEditingController(text: item?['url'] as String? ?? '');
+    _mapDialog('Social link', () {}, [platform, handle, url], () {
+      final p = platform.text.trim().toLowerCase();
+      if (p.isEmpty || (handle.text.trim().isEmpty && url.text.trim().isEmpty)) return;
+      final map = {'platform': p, 'handle': handle.text.trim(), 'url': url.text.trim()};
+      setState(() {
+        // One entry per platform, or the public profile renders two
+        // identical buttons.
+        final existing = _socials.indexWhere((x) => '${x['platform']}'.toLowerCase() == p);
+        if (index != null) {
+          _socials[index] = map;
+        } else if (existing != -1) {
+          _socials[existing] = map;
+        } else {
+          _socials.add(map);
+        }
+      });
+    }, fields: [
+      ('Platform (instagram, youtube, linkedin…)', platform),
+      ('Handle', handle),
+      ('Full URL (optional)', url),
+    ]);
   }
 
   void _mapDialog(String title, VoidCallback _, List<TextEditingController> controllers, VoidCallback onSave, {List<(String, TextEditingController)>? fields}) {

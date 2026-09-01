@@ -107,16 +107,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: SizedBox(
         height: 240,
         child: LineChart(LineChartData(
-          gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (_) => const FlLine(color: AppColors.border, strokeWidth: 1)),
+          gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (_) => FlLine(color: AppColors.border, strokeWidth: 1)),
           borderData: FlBorderData(show: false),
           titlesData: FlTitlesData(
             topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 28, getTitlesWidget: (v, _) => Text(v.toInt().toString(), style: const TextStyle(color: AppColors.textMuted, fontSize: 11)))),
+            leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 28, getTitlesWidget: (v, _) => Text(v.toInt().toString(), style: TextStyle(color: AppColors.textMuted, fontSize: 11)))),
             bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, _) {
               final i = v.toInt();
               if (i < 0 || i >= pts.length) return const SizedBox();
-              return Padding(padding: const EdgeInsets.only(top: 6), child: Text(pts[i].label, style: const TextStyle(color: AppColors.textMuted, fontSize: 11)));
+              return Padding(padding: const EdgeInsets.only(top: 6), child: Text(pts[i].label, style: TextStyle(color: AppColors.textMuted, fontSize: 11)));
             })),
           ),
           lineBarsData: [
@@ -150,12 +150,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Row(children: [
                       Expanded(child: Text(b.clientName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5))),
-                      Text(cur.format(b.amount), style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.gold, fontSize: 13)),
+                      Text(cur.format(b.amount), style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.gold, fontSize: 13)),
                     ]),
                     const SizedBox(height: 2),
-                    Text(b.service, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                    Text(b.service, style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                     const SizedBox(height: 4),
-                    Text(DateFormat('d MMM yyyy').format(b.date), style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                    Text(DateFormat('d MMM yyyy').format(b.date), style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                   ]),
                 ),
             ]),
@@ -178,14 +178,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       width: 46, height: 46,
                       decoration: BoxDecoration(color: AppColors.gold.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
                       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Text(DateFormat('dd').format(b.date), style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.gold, fontSize: 16)),
-                        Text(DateFormat('MMM').format(b.date), style: const TextStyle(color: AppColors.gold, fontSize: 10)),
+                        Text(DateFormat('dd').format(b.date), style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.gold, fontSize: 16)),
+                        Text(DateFormat('MMM').format(b.date), style: TextStyle(color: AppColors.gold, fontSize: 10)),
                       ]),
                     ),
                     const SizedBox(width: 12),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(b.service, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
-                      Text('${b.clientName} · ${b.location}', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                      Text('${b.clientName} · ${b.location}', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                     ])),
                     if (!Responsive.isMobile(context)) ...[
                       Text(cur.format(b.amount), style: const TextStyle(fontWeight: FontWeight.w600)),

@@ -9,13 +9,12 @@ import '../../data/repositories/vendor_repository.dart';
 
 /// Live label → category map so the brand panel re-themes as the vendor
 /// picks their business type (mirrors VendorSession.setFromLabel).
-VendorCategory _catFromLabel(String label) => switch (label) {
-      'Photography' => VendorCategory.photography,
-      'Videography' => VendorCategory.videography,
-      'Venue' => VendorCategory.venue,
-      'Event Services' => VendorCategory.events,
-      _ => VendorCategory.talent,
-    };
+/// Resolve the stored category string to a console config.
+///
+/// Goes through the marketplace taxonomy, which understands the original five
+/// labels, the eighteen category ids and labels, and the free text existing
+/// vendors already have stored against them.
+VendorCategoryConfig _configFor(String label) => configForLabel(label);
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscure = true;
   bool _loading = false;
   String _error = '';
-  String _category = 'Talent Agency';
+  String _category = 'Female Models';
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _company = TextEditingController();
@@ -115,7 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
       onPlans: () => context.go('/subscription'),
     );
     final cfg = _register
-        ? categoryConfigs[_catFromLabel(_category)]!
+        ? _configFor(_category)
         : categoryConfigs[VendorCategory.talent]!;
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -150,7 +149,7 @@ class _BrandPanel extends StatelessWidget {
           Container(
             width: 58, height: 58, alignment: Alignment.center,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [AppColors.goldLight, AppColors.goldDark]),
+              gradient: LinearGradient(colors: [AppColors.goldLight, AppColors.goldDark]),
               borderRadius: BorderRadius.circular(15),
               boxShadow: [BoxShadow(color: AppColors.gold.withValues(alpha: 0.4), blurRadius: 22, offset: const Offset(0, 8))],
             ),
@@ -222,13 +221,13 @@ class _AuthForm extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: AppColors.gold.withValues(alpha: 0.35)),
           ),
-          child: const Icon(Icons.storefront_outlined, color: AppColors.gold, size: 24),
+          child: Icon(Icons.storefront_outlined, color: AppColors.gold, size: 24),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(register ? 'Create vendor account' : 'Vendor sign in', style: Theme.of(context).textTheme.headlineSmall),
-            Text(register ? 'Start listing your services in minutes' : 'Welcome back to your vendor console', style: const TextStyle(color: AppColors.textSecondary)),
+            Text(register ? 'Start listing your services in minutes' : 'Welcome back to your vendor console', style: TextStyle(color: AppColors.textSecondary)),
           ]),
         ),
       ]),
@@ -270,7 +269,7 @@ class _AuthForm extends StatelessWidget {
         ]),
         if (otpHint.isNotEmpty) ...[
           const SizedBox(height: 6),
-          Text(otpHint, style: const TextStyle(color: AppColors.gold, fontSize: 12)),
+          Text(otpHint, style: TextStyle(color: AppColors.gold, fontSize: 12)),
         ],
         const SizedBox(height: 16),
         const _Label('Category'),
@@ -282,13 +281,16 @@ class _AuthForm extends StatelessWidget {
               isExpanded: true,
               value: category,
               dropdownColor: AppColors.surfaceAlt,
-              style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-              items: const [
-                DropdownMenuItem(value: 'Talent Agency', child: Text('Talent Agency')),
-                DropdownMenuItem(value: 'Photography', child: Text('Photography')),
-                DropdownMenuItem(value: 'Videography', child: Text('Videography')),
-                DropdownMenuItem(value: 'Venue', child: Text('Venue')),
-                DropdownMenuItem(value: 'Event Services', child: Text('Event Services')),
+              style: TextStyle(color: AppColors.textPrimary, fontSize: 14),
+              items: [
+                // Every marketplace category, grouped by division so a long
+                // list stays navigable. Values are the human labels the
+                // backend stores and matches vendors on.
+                for (final c in marketCategories)
+                  DropdownMenuItem(
+                    value: c.label,
+                    child: Text('${c.divisionLabel} · ${c.label}'),
+                  ),
               ],
               onChanged: (v) { if (v != null) onCategory(v); },
             ),

@@ -17,7 +17,7 @@ class AppType {
   static TextStyle display({
     double size = 28,
     FontWeight weight = FontWeight.w600,
-    Color color = AppColors.textPrimary,
+    Color? color,
     double? height,
     double letterSpacing = -0.5,
     FontStyle? fontStyle,
@@ -25,7 +25,7 @@ class AppType {
       GoogleFonts.fraunces(
         fontSize: size,
         fontWeight: weight,
-        color: color,
+        color: color ?? AppColors.textPrimary,
         height: height,
         letterSpacing: letterSpacing,
         fontStyle: fontStyle,
@@ -35,28 +35,28 @@ class AppType {
   static TextStyle body({
     double size = 13,
     FontWeight weight = FontWeight.w500,
-    Color color = AppColors.textPrimary,
+    Color? color,
     double? height,
     double? letterSpacing,
   }) =>
       GoogleFonts.syne(
         fontSize: size,
         fontWeight: weight,
-        color: color,
+        color: color ?? AppColors.textPrimary,
         height: height,
         letterSpacing: letterSpacing,
       );
 
   /// Tiny uppercase tracked eyebrow / section label.
   static TextStyle eyebrow({
-    Color color = AppColors.textMuted,
+    Color? color,
     double size = 10,
     FontWeight weight = FontWeight.w700,
   }) =>
       GoogleFonts.syne(
         fontSize: size,
         fontWeight: weight,
-        color: color,
+        color: color ?? AppColors.textMuted,
         letterSpacing: 2,
       );
 

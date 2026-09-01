@@ -39,7 +39,7 @@ class _EarningsScreenState extends State<EarningsScreen> {
     return ListView(
       padding: EdgeInsets.all(responsiveValue(context, mobile: 16, desktop: 28)),
       children: [
-        PageHeader(title: 'Earnings', subtitle: 'Wallet, payouts and transaction history'),
+        const PageHeader(title: 'Earnings', subtitle: 'Wallet, payouts and transaction history'),
         const SizedBox(height: 24),
         _walletCard(cur, settled, pending),
         const SizedBox(height: 24),
@@ -84,11 +84,11 @@ class _EarningsScreenState extends State<EarningsScreen> {
         border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Available balance', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+        Text('Available balance', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
         const SizedBox(height: 8),
-        Text(cur.format(settled), style: const TextStyle(color: AppColors.gold, fontWeight: FontWeight.w800, fontSize: 30)),
+        Text(cur.format(settled), style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.w800, fontSize: 30)),
         const SizedBox(height: 4),
-        Text('${cur.format(pending)} pending settlement', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+        Text('${cur.format(pending)} pending settlement', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
         const SizedBox(height: 20),
         Row(children: [
           ElevatedButton.icon(onPressed: () => _withdraw(cur, settled), icon: const Icon(Icons.account_balance, size: 18), label: const Text('Withdraw')),
@@ -119,7 +119,7 @@ class _EarningsScreenState extends State<EarningsScreen> {
         content: Text('Transfer ${cur.format(balance)} to your linked bank account?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () { Navigator.pop(ctx); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Withdrawal initiated'), backgroundColor: AppColors.surfaceAlt)); }, child: const Text('Confirm')),
+          ElevatedButton(onPressed: () { Navigator.pop(ctx); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('Withdrawal initiated'), backgroundColor: AppColors.surfaceAlt)); }, child: const Text('Confirm')),
         ],
       ),
     );

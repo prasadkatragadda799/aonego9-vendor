@@ -126,13 +126,15 @@ class ApiClient {
   static Future<void> _ensureAuthForUpload() async {
     if ((await getAccessToken())?.isNotEmpty == true) return;
     if (!await _refreshAccessToken()) {
-      throw ApiException(401, 'Not logged in — sign in again to upload photos');
+      throw const ApiException(401, 'Not logged in — sign in again to upload photos');
     }
   }
 
-  static Future<dynamic> get(String path) async {
-    final res = await http.get(Uri.parse('$kBaseUrl$path'), headers: await _headers());
-    await _clearSessionOnAuthFailure(res.statusCode);
+  static Future<dynamic> get(String path, {bool auth = true}) async {
+    final res = await http.get(Uri.parse('$kBaseUrl$path'), headers: await _headers(auth: auth));
+    // A public GET must not clear the session on a 401 — an anonymous read
+    // failing says nothing about whether the vendor is still signed in.
+    if (auth) await _clearSessionOnAuthFailure(res.statusCode);
     return _decode(res);
   }
 
@@ -180,7 +182,7 @@ class ApiClient {
     String mimeType = 'image/jpeg',
   }) async {
     if (bytes.isEmpty) {
-      throw ApiException(400, 'Selected file is empty — try another image');
+      throw const ApiException(400, 'Selected file is empty — try another image');
     }
 
     await _ensureAuthForUpload();

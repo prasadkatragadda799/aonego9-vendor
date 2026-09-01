@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../theme/theme_mode_store.dart';
 import '../theme/typography.dart';
 import '../responsive/responsive.dart';
 
@@ -81,13 +82,16 @@ class _HoverFxState extends State<HoverFx> {
 /// in their colour.
 class AmbientBackground extends StatelessWidget {
   final Widget child;
-  final Color accent;
-  const AmbientBackground({super.key, required this.child, this.accent = AppColors.gold});
+  /// Null means the brand gold for the active theme — it cannot be a default
+  /// value now that gold is a theme-dependent getter.
+  final Color? accent;
+  const AmbientBackground({super.key, required this.child, this.accent});
 
   @override
   Widget build(BuildContext context) {
+    final accent = this.accent ?? AppColors.gold;
     return DecoratedBox(
-      decoration: const BoxDecoration(color: AppColors.bg),
+      decoration: BoxDecoration(color: AppColors.bg),
       child: Stack(
         children: [
           Positioned(top: -160, right: -120, child: _glow(accent.withValues(alpha: 0.12), 460)),
@@ -114,8 +118,9 @@ class AmbientBackground extends StatelessWidget {
 /// consumer app's signature "eyebrow" above headings.
 class Eyebrow extends StatelessWidget {
   final String text;
-  final Color color;
-  const Eyebrow(this.text, {super.key, this.color = AppColors.gold});
+  /// Null means the brand gold for the active theme.
+  final Color? color;
+  const Eyebrow(this.text, {super.key, this.color});
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -151,10 +156,10 @@ class SectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.surface, Color(0xFF181B22)],
+          colors: [AppColors.surface, const Color(0xFF181B22)],
         ),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.border),
@@ -305,7 +310,7 @@ class SearchField extends StatelessWidget {
         onChanged: onChanged,
         decoration: InputDecoration(
           hintText: hint,
-          prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.textMuted),
+          prefixIcon: Icon(Icons.search, size: 20, color: AppColors.textMuted),
           contentPadding: const EdgeInsets.symmetric(horizontal: 12),
         ),
       ),
@@ -358,7 +363,7 @@ class LoadingView extends StatelessWidget {
   const LoadingView({super.key});
   @override
   Widget build(BuildContext context) =>
-      const Center(child: Padding(padding: EdgeInsets.all(48), child: CircularProgressIndicator(color: AppColors.gold)));
+      Center(child: Padding(padding: const EdgeInsets.all(48), child: CircularProgressIndicator(color: AppColors.gold)));
 }
 
 class EmptyView extends StatelessWidget {
@@ -412,7 +417,7 @@ class InitialsAvatar extends StatelessWidget {
       width: size,
       height: size,
       alignment: Alignment.center,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(colors: [AppColors.goldDark, AppColors.gold]),
         shape: BoxShape.circle,
       ),
@@ -429,19 +434,21 @@ class PageHeader extends StatelessWidget {
   final String title;
   final String? subtitle;
   final String? eyebrow;
-  final Color accent;
+  /// Null means the brand gold for the active theme.
+  final Color? accent;
   final List<Widget> actions;
   const PageHeader({
     super.key,
     required this.title,
     this.subtitle,
     this.eyebrow,
-    this.accent = AppColors.gold,
+    this.accent,
     this.actions = const [],
   });
 
   @override
   Widget build(BuildContext context) {
+    final accent = this.accent ?? AppColors.gold;
     final stack = Responsive.isMobile(context);
     final titleBlock = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -475,6 +482,34 @@ class PageHeader extends StatelessWidget {
         Expanded(child: titleBlock),
         ...actions.expand((a) => [a, const SizedBox(width: 10)]),
       ],
+    );
+  }
+}
+
+/// Appearance cycle — system → light → dark. Sits in the shell's app bar.
+///
+/// A single cycling button rather than a three-way control: the console's
+/// header has one slot, and "follow system" stays reachable as a step rather
+/// than being collapsed away into a binary.
+class ThemeCycleButton extends StatelessWidget {
+  const ThemeCycleButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<String>(
+      valueListenable: ThemeModeStore.mode,
+      builder: (context, mode, _) {
+        final (icon, tip) = switch (mode) {
+          'light' => (Icons.light_mode_rounded, 'Light — tap for dark'),
+          'dark' => (Icons.dark_mode_rounded, 'Dark — tap to follow system'),
+          _ => (Icons.brightness_auto_rounded, 'Following system — tap for light'),
+        };
+        return IconButton(
+          tooltip: tip,
+          onPressed: ThemeModeStore.cycle,
+          icon: Icon(icon, size: 20),
+        );
+      },
     );
   }
 }

@@ -67,11 +67,11 @@ class _ServicesScreenState extends State<ServicesScreen> {
                       Switch(value: p.active, activeColor: AppColors.gold, onChanged: (v) => _toggle(p, v)),
                     ]),
                     const SizedBox(height: 2),
-                    Text(p.description, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12.5, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
+                    Text(p.description, style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
                     const Spacer(),
                     Row(children: [
-                      Text(cur.format(p.price), style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.gold, fontSize: 17)),
-                      Text(' / ${p.unit}', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                      Text(cur.format(p.price), style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.gold, fontSize: 17)),
+                      Text(' / ${p.unit}', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                       const Spacer(),
                       StatusChip(label: '${p.bookingsCount} booked', color: AppColors.info),
                     ]),
@@ -79,7 +79,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                     Row(children: [
                       OutlinedButton.icon(onPressed: () => _openEditor(p), icon: const Icon(Icons.edit_outlined, size: 16), label: const Text('Edit')),
                       const SizedBox(width: 10),
-                      if (!p.active) const StatusChip(label: 'Hidden', color: AppColors.textMuted),
+                      if (!p.active) StatusChip(label: 'Hidden', color: AppColors.textMuted),
                     ]),
                   ]),
                 ),

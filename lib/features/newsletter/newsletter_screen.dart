@@ -52,13 +52,13 @@ class _VendorNewsletterScreenState extends State<VendorNewsletterScreen> {
             SectionCard(
               title: n['title']?.toString() ?? '',
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(n['excerpt']?.toString() ?? '', style: const TextStyle(color: AppColors.textSecondary, height: 1.5)),
+                Text(n['excerpt']?.toString() ?? '', style: TextStyle(color: AppColors.textSecondary, height: 1.5)),
                 const SizedBox(height: 8),
                 Text(n['body']?.toString() ?? '', style: const TextStyle(fontSize: 13.5, height: 1.6)),
                 const SizedBox(height: 8),
                 Text(
                   '${n['author'] ?? ''} · ${n['city'] ?? ''} · ${n['date'] ?? ''}',
-                  style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
                 ),
               ]),
             ),

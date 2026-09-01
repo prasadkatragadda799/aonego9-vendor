@@ -83,11 +83,11 @@ class _ThreadList extends StatelessWidget {
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Row(children: [
                       Expanded(child: Text(t.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14), overflow: TextOverflow.ellipsis)),
-                      Text(DateFormat('HH:mm').format(t.time), style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                      Text(DateFormat('HH:mm').format(t.time), style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
                     ]),
                     const SizedBox(height: 3),
                     Row(children: [
-                      Expanded(child: Text(t.lastMessage, style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                      Expanded(child: Text(t.lastMessage, style: TextStyle(color: AppColors.textMuted, fontSize: 12.5), maxLines: 1, overflow: TextOverflow.ellipsis)),
                       if (t.unread > 0) Container(
                         margin: const EdgeInsets.only(left: 6),
                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
@@ -115,14 +115,14 @@ class _ChatView extends StatelessWidget {
     return Column(children: [
       Container(
         padding: const EdgeInsets.all(14),
-        decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.border))),
+        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.border))),
         child: Row(children: [
           if (onBack != null) IconButton(onPressed: onBack, icon: const Icon(Icons.arrow_back, size: 20)),
           InitialsAvatar(name: thread.name, size: 38),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(thread.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-            const Text('Active now', style: TextStyle(color: AppColors.success, fontSize: 12)),
+            Text('Active now', style: TextStyle(color: AppColors.success, fontSize: 12)),
           ])),
           IconButton(onPressed: () {}, icon: const Icon(Icons.more_vert, size: 20)),
         ]),
@@ -151,7 +151,7 @@ class _ChatView extends StatelessWidget {
       ),
       Container(
         padding: const EdgeInsets.all(12),
-        decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppColors.border))),
+        decoration: BoxDecoration(border: Border(top: BorderSide(color: AppColors.border))),
         child: Row(children: [
           const Expanded(child: TextField(decoration: InputDecoration(hintText: 'Type a message…'))),
           const SizedBox(width: 10),

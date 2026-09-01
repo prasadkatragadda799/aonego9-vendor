@@ -62,7 +62,7 @@ class ResponsiveTable extends StatelessWidget {
                   child: Text(
                     c.label.toUpperCase(),
                     textAlign: c.numeric ? TextAlign.right : TextAlign.left,
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.6),
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.6),
                   ),
                 ),
             ],
@@ -115,7 +115,7 @@ class ResponsiveTable extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(width: 110, child: Text(columns[c].label, style: const TextStyle(color: AppColors.textMuted, fontSize: 12))),
+                  SizedBox(width: 110, child: Text(columns[c].label, style: TextStyle(color: AppColors.textMuted, fontSize: 12))),
                   Expanded(child: cells[c]),
                 ],
               ),

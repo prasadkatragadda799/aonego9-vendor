@@ -47,7 +47,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return ListView(
       padding: EdgeInsets.all(responsiveValue(context, mobile: 16, desktop: 28)),
       children: [
-        PageHeader(title: 'Calendar', subtitle: 'Your shoots and availability at a glance'),
+        const PageHeader(title: 'Calendar', subtitle: 'Your shoots and availability at a glance'),
         const SizedBox(height: 24),
         ResponsiveLayout(
           mobile: (_) => Column(children: [_calendarCard(), const SizedBox(height: 16), _dayCard()]),
@@ -68,7 +68,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final cells = <Widget>[];
     const dow = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
     for (final d in dow) {
-      cells.add(Center(child: Text(d, style: const TextStyle(color: AppColors.textMuted, fontSize: 12, fontWeight: FontWeight.w600))));
+      cells.add(Center(child: Text(d, style: TextStyle(color: AppColors.textMuted, fontSize: 12, fontWeight: FontWeight.w600))));
     }
     for (var i = 0; i < startWeekday; i++) {
       cells.add(const SizedBox());
@@ -134,9 +134,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       StatusChip(label: StatusUi.booking(b.status).$1, color: StatusUi.booking(b.status).$2),
                     ]),
                     const SizedBox(height: 6),
-                    Text('${b.clientName} · ${b.location}', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                    Text('${b.clientName} · ${b.location}', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                     const SizedBox(height: 4),
-                    Text(cur.format(b.amount), style: const TextStyle(color: AppColors.gold, fontWeight: FontWeight.w700, fontSize: 13)),
+                    Text(cur.format(b.amount), style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.w700, fontSize: 13)),
                   ]),
                 ),
             ]),

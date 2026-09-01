@@ -5,13 +5,40 @@ import 'typography.dart';
 class AppTheme {
   AppTheme._();
 
+  /// The theme for a brightness. [AppColors.applyBrightness] must already
+  /// have been called for this frame — the tokens below read from it.
+  static ThemeData of(Brightness brightness) =>
+      brightness == Brightness.light ? light : dark;
+
+  static ThemeData get light {
+    final base = ThemeData.light(useMaterial3: true);
+    return dark.copyWith(
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: AppColors.bg,
+      textTheme: base.textTheme.apply(
+        bodyColor: AppColors.textPrimary,
+        displayColor: AppColors.textPrimary,
+      ),
+      colorScheme: ColorScheme.light(
+        surface: AppColors.bg,
+        onSurface: AppColors.textPrimary,
+        primary: AppColors.gold,
+        onPrimary: AppColors.onAccent(AppColors.gold),
+        secondary: AppColors.gold,
+        onSecondary: AppColors.onAccent(AppColors.gold),
+        error: AppColors.danger,
+        onError: AppColors.onAccent(AppColors.danger),
+      ),
+    );
+  }
+
   static ThemeData get dark {
     final base = ThemeData.dark(useMaterial3: true);
     return base.copyWith(
       scaffoldBackgroundColor: AppColors.bg,
-      colorScheme: const ColorScheme.dark(
+      colorScheme: ColorScheme.dark(
         primary: AppColors.gold,
-        onPrimary: Color(0xFF1A1407),
+        onPrimary: const Color(0xFF1A1407),
         secondary: AppColors.goldLight,
         surface: AppColors.surface,
         onSurface: AppColors.textPrimary,
@@ -23,27 +50,27 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
-          side: const BorderSide(color: AppColors.border),
+          side: BorderSide(color: AppColors.border),
         ),
         margin: EdgeInsets.zero,
       ),
-      dividerTheme: const DividerThemeData(color: AppColors.border, thickness: 1),
+      dividerTheme: DividerThemeData(color: AppColors.border, thickness: 1),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surfaceAlt,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        hintStyle: const TextStyle(color: AppColors.textMuted),
+        hintStyle: TextStyle(color: AppColors.textMuted),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.gold, width: 1.4),
+          borderSide: BorderSide(color: AppColors.gold, width: 1.4),
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: BorderSide(color: AppColors.border),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -59,16 +86,16 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.textPrimary,
-          side: const BorderSide(color: AppColors.border),
+          side: BorderSide(color: AppColors.border),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       ),
       chipTheme: base.chipTheme.copyWith(
         backgroundColor: AppColors.surfaceAlt,
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: AppColors.border),
       ),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: AppColors.bg,
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -76,7 +103,7 @@ class AppTheme {
       ),
       // Without this, Material 3 colours SnackBar text with `onInverseSurface`
       // (a dark tone in a dark scheme) — invisible on our dark surfaces.
-      snackBarTheme: const SnackBarThemeData(
+      snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.surfaceAlt,
         contentTextStyle: TextStyle(color: AppColors.textPrimary, fontSize: 13.5),
         actionTextColor: AppColors.gold,

@@ -39,10 +39,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   List<(String, String, Color)> get _docs => _kycVerified
-      ? const [
+      ? [
           ('Platform KYC', 'Verified by admin', AppColors.success),
         ]
-      : const [
+      : [
           ('Platform KYC', 'Pending admin review', AppColors.warning),
         ];
 
@@ -51,7 +51,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return ListView(
       padding: EdgeInsets.all(responsiveValue(context, mobile: 16, desktop: 28)),
       children: [
-        PageHeader(title: 'Settings & KYC', subtitle: 'Account, documents and notification preferences'),
+        const PageHeader(title: 'Settings & KYC', subtitle: 'Account, documents and notification preferences'),
         const SizedBox(height: 24),
         ResponsiveLayout(
           mobile: (_) => Column(children: [_kycCard(), const SizedBox(height: 16), _prefsCard(), const SizedBox(height: 16), _accountCard()]),
@@ -79,7 +79,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(color: AppColors.surfaceAlt, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.border)),
             child: Row(children: [
-              const Icon(Icons.description_outlined, size: 20, color: AppColors.textSecondary),
+              Icon(Icons.description_outlined, size: 20, color: AppColors.textSecondary),
               const SizedBox(width: 12),
               Expanded(child: Text(d.$1, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13.5))),
               StatusChip(label: d.$2, color: d.$3),
@@ -123,7 +123,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Row(children: [
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(title, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13.5)),
-          Text(sub, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          Text(sub, style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
         ])),
         Switch(value: value, activeColor: AppColors.gold, onChanged: onChanged),
       ]),
@@ -140,7 +140,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Icon(icon, size: 19, color: color ?? AppColors.textSecondary),
           const SizedBox(width: 12),
           Expanded(child: Text(title, style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500, color: color ?? AppColors.textPrimary))),
-          const Icon(Icons.chevron_right, size: 18, color: AppColors.textMuted),
+          Icon(Icons.chevron_right, size: 18, color: AppColors.textMuted),
         ]),
       ),
     );
