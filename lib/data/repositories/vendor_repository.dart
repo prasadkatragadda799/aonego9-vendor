@@ -7,6 +7,14 @@ import '../../core/category/vendor_category.dart';
 /// Base URL is configured in api_client.dart (kBaseUrl).
 /// ───────────────────────────────────────────────────────────────
 class VendorRepository {
+  /// Unwrap a list payload defensively: accepts `{items: [...]}`, a bare
+  /// array, or a null/missing field (treated as empty).
+  static List<dynamic> _items(dynamic data, [String key = 'items']) {
+    if (data is List) return data;
+    if (data is Map && data[key] is List) return data[key] as List;
+    return const [];
+  }
+
 
   // ── Auth ─────────────────────────────────────────────────────
 
@@ -49,13 +57,17 @@ class VendorRepository {
   // GET /api/v1/analytics/vendor/dashboard
   Future<Map<String, num>> dashboardSummary() async {
     final data = await ApiClient.get('/analytics/vendor/dashboard');
+    // Every field is optional. A brand-new vendor legitimately has no
+    // bookings and no rating, and an unguarded cast would crash the first
+    // screen after sign-in rather than showing zeroes.
+    num n(String key) => (data[key] as num?) ?? 0;
     return {
-      'pendingRequests': (data['pending_requests'] as num),
-      'upcoming': (data['active_bookings'] as num),
-      'monthEarnings': (data['total_earned'] as num),
-      'pendingPayout': (data['pending_payout'] as num),
-      'completed': (data['completed_bookings'] as num),
-      'rating': (data['average_rating'] as num),
+      'pendingRequests': n('pending_requests'),
+      'upcoming': n('active_bookings'),
+      'monthEarnings': n('total_earned'),
+      'pendingPayout': n('pending_payout'),
+      'completed': n('completed_bookings'),
+      'rating': n('average_rating'),
       'activeTalent': 0,
     };
   }
@@ -122,7 +134,7 @@ class VendorRepository {
   Future<List<VendorBooking>> bookings({String? status}) async {
     final q = status != null ? '?status=$status' : '';
     final data = await ApiClient.get('/bookings/vendor$q') as Map;
-    return (data['items'] as List).map((j) => VendorBooking.fromJson(j)).toList();
+    return _items(data).map((j) => VendorBooking.fromJson(j)).toList();
   }
 
   // GET /api/v1/bookings/vendor/calendar
@@ -141,7 +153,7 @@ class VendorRepository {
   // GET /api/v1/payments/earnings
   Future<List<EarningTxn>> earnings() async {
     final data = await ApiClient.get('/payments/earnings') as Map;
-    return (data['items'] as List).map((j) => EarningTxn.fromJson(j)).toList();
+    return _items(data).map((j) => EarningTxn.fromJson(j)).toList();
   }
 
   // ── Reviews ───────────────────────────────────────────────────
@@ -149,7 +161,7 @@ class VendorRepository {
   // GET /api/v1/reviews/vendor
   Future<List<VendorReview>> reviews() async {
     final data = await ApiClient.get('/reviews/vendor') as Map;
-    return (data['items'] as List).map((j) => _reviewFromJson(j)).toList();
+    return _items(data).map((j) => _reviewFromJson(j)).toList();
   }
 
   // POST /api/v1/reviews/{id}/reply
@@ -181,7 +193,7 @@ class VendorRepository {
   // GET /api/v1/notifications
   Future<List<NotificationItem>> notifications() async {
     final data = await ApiClient.get('/notifications') as Map;
-    return (data['items'] as List).map((j) => _notifFromJson(j)).toList();
+    return _items(data).map((j) => _notifFromJson(j)).toList();
   }
 
   // PATCH /api/v1/notifications/{id}/read
@@ -195,8 +207,8 @@ class VendorRepository {
   // GET /api/v1/analytics/vendor/earnings-trend
   Future<List<KpiPoint>> earningsTrend() async {
     final data = await ApiClient.get('/analytics/vendor/earnings-trend') as Map;
-    return (data['points'] as List)
-        .map((j) => KpiPoint(j['label'] as String, (j['value'] as num).toDouble()))
+    return _items(data, 'points')
+        .map((j) => KpiPoint('${j['label'] ?? ''}', (j['value'] as num?)?.toDouble() ?? 0))
         .toList();
   }
 
@@ -216,7 +228,7 @@ class VendorRepository {
       return VendorSubscription(
         planId: data['plan_id'],
         planName: data['plan_name'],
-        price: (data['price'] as num).toDouble(),
+        price: (data['price'] as num?)?.toDouble() ?? 0,
         status: data['status'],
         renewsOn: DateTime.parse(data['renews_on']),
       );
@@ -254,7 +266,7 @@ class VendorRepository {
       id: j['id'],
       date: DateTime.parse(j['date']),
       description: j['description'],
-      amount: (j['amount'] as num).toDouble(),
+      amount: (j['amount'] as num?)?.toDouble() ?? 0,
       status: j['status'],
     )).toList();
   }
@@ -332,7 +344,7 @@ class VendorRepository {
         time: DateTime.parse(j['last_message_at']),
         unread: j['unread_count'] ?? 0,
         messages: j['messages'] != null
-            ? (j['messages'] as List).map((m) => ChatMessage(m['text'], m['from_vendor'] == true, DateTime.parse(m['sent_at']))).toList()
+            ? _items(j, 'messages').map((m) => ChatMessage(m['text'], m['from_vendor'] == true, DateTime.parse(m['sent_at']))).toList()
             : [],
       );
 
@@ -356,9 +368,9 @@ class VendorRepository {
   static SubscriptionPlan _planFromJson(Map j) => SubscriptionPlan(
         id: j['id'],
         name: j['name'],
-        price: (j['price'] as num).toDouble(),
+        price: (j['price'] as num?)?.toDouble() ?? 0,
         period: j['period'],
-        features: (j['features'] as List).cast<String>(),
+        features: _items(j, 'features').map((e) => '$e').toList(),
         recommended: j['recommended'] ?? false,
         audience: j['audience'] ?? 'vendor',
       );
