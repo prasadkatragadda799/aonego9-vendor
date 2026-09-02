@@ -114,7 +114,7 @@ class _Sidebar extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [const Color(0xFF13151B), AppColors.sidebar],
+          colors: [AppColors.sidebarLift, AppColors.sidebar],
         ),
         border: Border(right: BorderSide(color: AppColors.border)),
       ),
@@ -325,7 +325,7 @@ class _BrandMark extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         boxShadow: [BoxShadow(color: AppColors.gold.withValues(alpha: 0.35), blurRadius: 14, offset: const Offset(0, 4))],
       ),
-      child: Text('A9', style: AppType.display(color: const Color(0xFF1A1407), weight: FontWeight.w700, size: 15)),
+      child: Text('A9', style: AppType.display(color: AppColors.onAccent(AppColors.gold), weight: FontWeight.w700, size: 15)),
     );
     if (compact) return logo;
     return Row(mainAxisSize: MainAxisSize.min, children: [

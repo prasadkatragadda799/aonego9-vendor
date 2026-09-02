@@ -38,7 +38,7 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.bg,
       colorScheme: ColorScheme.dark(
         primary: AppColors.gold,
-        onPrimary: const Color(0xFF1A1407),
+        onPrimary: AppColors.onAccent(AppColors.gold),
         secondary: AppColors.goldLight,
         surface: AppColors.surface,
         onSurface: AppColors.textPrimary,
@@ -76,7 +76,7 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.gold,
-          foregroundColor: const Color(0xFF1A1407),
+          foregroundColor: AppColors.onAccent(AppColors.gold),
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

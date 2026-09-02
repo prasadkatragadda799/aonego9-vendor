@@ -165,7 +165,7 @@ class _ProfileDetailsSectionState extends State<ProfileDetailsSection> {
         ElevatedButton.icon(
           onPressed: _saving ? null : _save,
           icon: _saving
-              ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1A1407)))
+              ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onAccent(AppColors.gold)))
               : const Icon(Icons.save_outlined, size: 16),
           label: Text(_saving ? 'Saving…' : 'Save details'),
         ),

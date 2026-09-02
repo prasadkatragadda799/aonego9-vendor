@@ -193,7 +193,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF2A2410), Color(0xFF1C1F27)]),
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.premiumWash),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
       ),

@@ -79,7 +79,7 @@ class _EarningsScreenState extends State<EarningsScreen> {
     final content = Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF2A2410), Color(0xFF1C1F27)]),
+        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: AppColors.premiumWash),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
       ),

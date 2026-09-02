@@ -153,7 +153,7 @@ class _BrandPanel extends StatelessWidget {
               borderRadius: BorderRadius.circular(15),
               boxShadow: [BoxShadow(color: AppColors.gold.withValues(alpha: 0.4), blurRadius: 22, offset: const Offset(0, 8))],
             ),
-            child: Text('A9', style: AppType.display(color: const Color(0xFF1A1407), weight: FontWeight.w700, size: 22)),
+            child: Text('A9', style: AppType.display(color: AppColors.onAccent(AppColors.gold), weight: FontWeight.w700, size: 22)),
           ),
           const SizedBox(height: 30),
           // Eyebrow re-themes to the selected category in real time.
@@ -303,7 +303,7 @@ class _AuthForm extends StatelessWidget {
         child: ElevatedButton(
           onPressed: loading ? null : onSubmit,
           child: loading
-              ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1A1407)))
+              ? SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onAccent(AppColors.gold)))
               : Text(register ? 'Create account' : 'Sign In'),
         ),
       ),

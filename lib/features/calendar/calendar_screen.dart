@@ -88,8 +88,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
             border: Border.all(color: selected ? AppColors.gold : Colors.transparent),
           ),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Text('$day', style: TextStyle(color: selected ? const Color(0xFF1A1407) : AppColors.textPrimary, fontWeight: selected ? FontWeight.w700 : FontWeight.w500, fontSize: 13)),
-            if (has) Container(margin: const EdgeInsets.only(top: 3), width: 5, height: 5, decoration: BoxDecoration(color: selected ? const Color(0xFF1A1407) : AppColors.gold, shape: BoxShape.circle)),
+            Text('$day', style: TextStyle(color: selected ? AppColors.onAccent(AppColors.gold) : AppColors.textPrimary, fontWeight: selected ? FontWeight.w700 : FontWeight.w500, fontSize: 13)),
+            if (has) Container(margin: const EdgeInsets.only(top: 3), width: 5, height: 5, decoration: BoxDecoration(color: selected ? AppColors.onAccent(AppColors.gold) : AppColors.gold, shape: BoxShape.circle)),
           ]),
         ),
       ));

@@ -106,7 +106,7 @@ class _RosterScreenState extends State<RosterScreen> {
               child: ElevatedButton(
                 onPressed: saving ? null : submit,
                 child: saving
-                    ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1A1407)))
+                    ? SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onAccent(AppColors.gold)))
                     : const Text('Add to roster'),
               ),
             ),

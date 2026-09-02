@@ -160,7 +160,7 @@ class _PackageFormState extends State<_PackageForm> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1F),
+        backgroundColor: AppColors.surface,
         title: const Text('Delete package?'),
         content: Text('This will permanently remove "${widget.title.text}" and cannot be undone.'),
         actions: [
@@ -248,7 +248,7 @@ class _PackageFormState extends State<_PackageForm> {
           child: ElevatedButton(
             onPressed: (_saving || _deleting) ? null : _submit,
             child: _saving
-                ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1A1407)))
+                ? SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onAccent(AppColors.gold)))
                 : Text(widget.existing != null ? 'Update Package' : 'Save Package'),
           ),
         ),

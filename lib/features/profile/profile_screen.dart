@@ -352,7 +352,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ElevatedButton.icon(
                 onPressed: _saving ? null : _save,
                 icon: _saving
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1A1407)))
+                    ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onAccent(AppColors.gold)))
                     : const Icon(Icons.save_outlined, size: 18),
                 label: Text(_saving ? 'Saving…' : 'Save Changes'),
               ),
@@ -579,7 +579,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(color: cfg.accent, shape: BoxShape.circle),
-                    child: const Icon(Icons.camera_alt, size: 14, color: Color(0xFF1A1407)),
+                    child: Icon(Icons.camera_alt, size: 14, color: AppColors.onAccent(AppColors.gold)),
                   ),
                 ),
               ]),
@@ -667,7 +667,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(color: cfg.accent, borderRadius: BorderRadius.circular(8)),
-                    child: Text('Enquire', style: AppType.body(size: 12, weight: FontWeight.w700, color: const Color(0xFF1A1407))),
+                    child: Text('Enquire', style: AppType.body(size: 12, weight: FontWeight.w700, color: AppColors.onAccent(AppColors.gold))),
                   ),
                 ]),
               ]),
@@ -873,7 +873,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(color: AppColors.gold, borderRadius: BorderRadius.circular(6)),
-                      child: Text('Cover', style: AppType.body(size: 9, weight: FontWeight.w800, color: const Color(0xFF1A1407))),
+                      child: Text('Cover', style: AppType.body(size: 9, weight: FontWeight.w800, color: AppColors.onAccent(AppColors.gold))),
                     ),
                   ),
               ],
@@ -1065,7 +1065,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       }
                     },
                     child: uploading
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1A1407)))
+                        ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onAccent(AppColors.gold)))
                         : Text(existing == null ? 'Add work' : 'Save'),
                   ),
                 ),

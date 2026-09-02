@@ -92,7 +92,7 @@ class _ThreadList extends StatelessWidget {
                         margin: const EdgeInsets.only(left: 6),
                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
                         decoration: BoxDecoration(color: AppColors.gold, borderRadius: BorderRadius.circular(10)),
-                        child: Text('${t.unread}', style: const TextStyle(color: Color(0xFF1A1407), fontSize: 11, fontWeight: FontWeight.w700)),
+                        child: Text('${t.unread}', style: TextStyle(color: AppColors.onAccent(AppColors.gold), fontSize: 11, fontWeight: FontWeight.w700)),
                       ),
                     ]),
                   ])),
@@ -143,7 +143,7 @@ class _ChatView extends StatelessWidget {
                     color: m.fromMe ? AppColors.gold : AppColors.surfaceAlt,
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Text(m.text, style: TextStyle(color: m.fromMe ? const Color(0xFF1A1407) : AppColors.textPrimary, fontSize: 13.5, height: 1.4)),
+                  child: Text(m.text, style: TextStyle(color: m.fromMe ? AppColors.onAccent(AppColors.gold) : AppColors.textPrimary, fontSize: 13.5, height: 1.4)),
                 ),
               ),
           ],
@@ -155,7 +155,7 @@ class _ChatView extends StatelessWidget {
         child: Row(children: [
           const Expanded(child: TextField(decoration: InputDecoration(hintText: 'Type a message…'))),
           const SizedBox(width: 10),
-          CircleAvatar(radius: 22, backgroundColor: AppColors.gold, child: IconButton(onPressed: () {}, icon: const Icon(Icons.send, size: 18, color: Color(0xFF1A1407)))),
+          CircleAvatar(radius: 22, backgroundColor: AppColors.gold, child: IconButton(onPressed: () {}, icon: Icon(Icons.send, size: 18, color: AppColors.onAccent(AppColors.gold)))),
         ]),
       ),
     ]);

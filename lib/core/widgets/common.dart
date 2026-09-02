@@ -159,7 +159,7 @@ class SectionCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.surface, const Color(0xFF181B22)],
+          colors: [AppColors.surface, AppColors.surfaceLift],
         ),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.border),
@@ -423,7 +423,7 @@ class InitialsAvatar extends StatelessWidget {
       ),
       child: Text(_initials,
           style: AppType.display(
-              color: const Color(0xFF1A1407), weight: FontWeight.w700, size: size * 0.36)),
+              color: AppColors.onAccent(AppColors.gold), weight: FontWeight.w700, size: size * 0.36)),
     );
   }
 }

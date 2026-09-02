@@ -99,6 +99,21 @@ class AppColors {
         .toColor();
   }
 
+  /// The "premium card" wash used by the subscription and earnings heroes —
+  /// a gold tint bleeding into the raised surface. Hardcoded before, so those
+  /// cards stayed dark on paper while their text flipped to near-black.
+  /// Second stop of the card wash — a shade off [surface] so a card reads as
+  /// a lifted plane rather than a flat rectangle. Was a hardcoded dark hex,
+  /// which kept every card dark on paper.
+  static Color get surfaceLift => _p(const Color(0xFF181B22), const Color(0xFFF7F4EC));
+
+  /// Top stop of the sidebar wash.
+  static Color get sidebarLift => _p(const Color(0xFF13151B), const Color(0xFFE9E3D5));
+
+  static List<Color> get premiumWash => _light
+      ? const [Color(0xFFF7EFDD), Color(0xFFFFFFFF)]
+      : const [Color(0xFF2A2410), Color(0xFF1C1F27)];
+
   static List<Color> get chartPalette => [
         gold,
         info,
