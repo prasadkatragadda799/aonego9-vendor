@@ -29,6 +29,8 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
   Widget build(BuildContext context) {
     if (_loading) return const LoadingView();
     final avg = _all.isEmpty ? 0.0 : _all.map((r) => r.stars).reduce((a, b) => a + b) / _all.length;
+    final replied = _all.where((r) => r.reply != null && r.reply!.trim().isNotEmpty).length;
+    final responseRate = _all.isEmpty ? '—' : '${((replied / _all.length) * 100).round()}%';
 
     return ListView(
       padding: EdgeInsets.all(responsiveValue(context, mobile: 16, desktop: 28)),
@@ -41,7 +43,7 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
           Expanded(child: StatCard(label: 'Total Reviews', value: '${_all.length}', icon: Icons.reviews_outlined, color: AppColors.info)),
           if (!Responsive.isMobile(context)) ...[
             const SizedBox(width: 16),
-            Expanded(child: StatCard(label: 'Response Rate', value: '92%', icon: Icons.reply_outlined, color: AppColors.success)),
+            Expanded(child: StatCard(label: 'Response Rate', value: responseRate, icon: Icons.reply_outlined, color: AppColors.success)),
           ],
         ]),
         const SizedBox(height: 24),

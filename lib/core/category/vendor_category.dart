@@ -6,9 +6,9 @@ import '../theme/app_colors.dart';
 ///
 /// A vendor's category (chosen at sign-up) reshapes the whole console
 /// so every vendor type — talent agency, photographer, videographer,
-/// venue, event service — sees terminology, screens and seed data that
-/// match their business. Mirrors the category-aware vendor flow in the
-/// user app so the three apps stay on one design line.
+/// venue, event service — sees terminology and screens that match their
+/// business. Mirrors the category-aware vendor flow in the user app so
+/// the three apps stay on one design line.
 /// ───────────────────────────────────────────────────────────────
 enum VendorCategory { talent, photography, videography, venue, events }
 

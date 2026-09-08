@@ -15,8 +15,8 @@ class CalendarScreen extends StatefulWidget {
 
 class _CalendarScreenState extends State<CalendarScreen> {
   final _repo = VendorRepository();
-  DateTime _month = DateTime(2026, 6, 1);
-  DateTime _selected = DateTime(2026, 6, 16);
+  DateTime _month = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  DateTime _selected = DateTime.now();
   List<VendorBooking> _all = [];
   bool _loading = true;
 
