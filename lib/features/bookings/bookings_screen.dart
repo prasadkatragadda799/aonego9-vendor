@@ -17,6 +17,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
   final _repo = VendorRepository();
   List<VendorBooking> _all = [];
   bool _loading = true;
+  String? _error;
   BookingStatus? _filter;
 
   @override
@@ -26,10 +27,14 @@ class _BookingsScreenState extends State<BookingsScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final b = await _repo.bookings();
-    if (!mounted) return;
-    setState(() { _all = b; _loading = false; });
+    setState(() { _loading = true; _error = null; });
+    try {
+      final b = await _repo.bookings();
+      if (!mounted) return;
+      setState(() { _all = b; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() { _loading = false; _error = 'Could not load bookings.'; });
+    }
   }
 
   List<VendorBooking> get _filtered => _filter == null ? _all : _all.where((b) => b.status == _filter).toList();
@@ -44,6 +49,15 @@ class _BookingsScreenState extends State<BookingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_error != null) {
+      return Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(_error!, style: TextStyle(color: AppColors.textMuted)),
+          const SizedBox(height: 12),
+          OutlinedButton(onPressed: _load, child: const Text('Retry')),
+        ]),
+      );
+    }
     final cur = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
     return ListView(
       padding: EdgeInsets.all(responsiveValue(context, mobile: 16, desktop: 28)),

@@ -16,17 +16,35 @@ class _ReviewsScreenState extends State<ReviewsScreen> {
   final _repo = VendorRepository();
   List<VendorReview> _all = [];
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _repo.reviews().then((r) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final r = await _repo.reviews();
       if (mounted) setState(() { _all = r; _loading = false; });
-    });
+    } catch (_) {
+      if (mounted) setState(() { _loading = false; _error = 'Could not load reviews.'; });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_error != null) {
+      return Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(_error!, style: TextStyle(color: AppColors.textMuted)),
+          const SizedBox(height: 12),
+          OutlinedButton(onPressed: _load, child: const Text('Retry')),
+        ]),
+      );
+    }
     if (_loading) return const LoadingView();
     final avg = _all.isEmpty ? 0.0 : _all.map((r) => r.stars).reduce((a, b) => a + b) / _all.length;
     final replied = _all.where((r) => r.reply != null && r.reply!.trim().isNotEmpty).length;

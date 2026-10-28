@@ -328,14 +328,21 @@ class VendorRepository {
 
   // ── Private helpers ───────────────────────────────────────────
 
-  static VendorReview _reviewFromJson(Map j) => VendorReview(
-        id: j['id'],
-        client: j['author_id'] ?? 'Client',
-        stars: j['stars'],
-        text: j['text'],
-        date: DateTime.parse(j['date']),
-        reply: j['reply'],
-      );
+  static VendorReview _reviewFromJson(Map j) {
+    final rawDate = j['date'] ?? j['created_at'];
+    DateTime parsed = DateTime.now();
+    if (rawDate != null) {
+      parsed = DateTime.tryParse(rawDate.toString()) ?? parsed;
+    }
+    return VendorReview(
+      id: '${j['id'] ?? ''}',
+      client: j['client_name'] ?? j['author_id'] ?? 'Client',
+      stars: (j['stars'] as num?)?.toInt() ?? 0,
+      text: j['text'] as String? ?? '',
+      date: parsed,
+      reply: j['reply'] as String?,
+    );
+  }
 
   static ChatThread _threadFromJson(Map j) => ChatThread(
         id: j['id'],

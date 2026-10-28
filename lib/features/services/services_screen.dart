@@ -17,6 +17,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
   final _repo = VendorRepository();
   List<ServicePackage> _all = [];
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -25,9 +26,14 @@ class _ServicesScreenState extends State<ServicesScreen> {
   }
 
   Future<void> _load() async {
-    final s = await _repo.services();
-    if (!mounted) return;
-    setState(() { _all = s; _loading = false; });
+    setState(() { _loading = true; _error = null; });
+    try {
+      final s = await _repo.services();
+      if (!mounted) return;
+      setState(() { _all = s; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() { _loading = false; _error = 'Could not load packages.'; });
+    }
   }
 
   Future<void> _toggle(ServicePackage p, bool v) async {
@@ -37,6 +43,15 @@ class _ServicesScreenState extends State<ServicesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_error != null) {
+      return Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(_error!, style: TextStyle(color: AppColors.textMuted)),
+          const SizedBox(height: 12),
+          OutlinedButton(onPressed: _load, child: const Text('Retry')),
+        ]),
+      );
+    }
     final cur = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
     final cols = responsiveValue(context, mobile: 1, tablet: 2, desktop: 2);
 

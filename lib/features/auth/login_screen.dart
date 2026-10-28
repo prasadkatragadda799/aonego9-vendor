@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
@@ -55,8 +56,11 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() { _otpSending = true; _error = ''; _otpHint = ''; });
     try {
       final res = await _repo.sendOtp(_phone.text.trim(), purpose: 'vendor_register');
+      final debug = res['debug_code'];
       setState(() {
-        _otpHint = res['debug_code'] != null ? 'Dev OTP: ${res['debug_code']}' : 'OTP sent to your phone.';
+        _otpHint = (kDebugMode && debug != null)
+            ? 'Dev OTP: $debug'
+            : 'OTP sent to your phone.';
       });
     } catch (e) {
       setState(() => _error = 'Could not send OTP.');
@@ -66,6 +70,14 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _submit() async {
+    if (_email.text.trim().isEmpty || _password.text.trim().isEmpty) {
+      setState(() => _error = 'Enter email and password.');
+      return;
+    }
+    if (_register && _phone.text.trim().length >= 10 && _otp.text.trim().length < 4) {
+      setState(() => _error = 'Verify your phone with OTP before registering.');
+      return;
+    }
     setState(() { _loading = true; _error = ''; });
     try {
       if (_register) {

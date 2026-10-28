@@ -22,6 +22,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<KpiPoint>? _trend;
   List<VendorBooking>? _requests;
   List<VendorBooking>? _upcoming;
+  String? _error;
 
   @override
   void initState() {
@@ -30,20 +31,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _load() async {
-    final s = await _repo.dashboardSummary();
-    final t = await _repo.earningsTrend();
-    final b = await _repo.bookings();
-    if (!mounted) return;
-    setState(() {
-      _summary = s;
-      _trend = t;
-      _requests = b.where((x) => x.status == BookingStatus.requested).toList();
-      _upcoming = b.where((x) => x.status == BookingStatus.confirmed).toList();
-    });
+    setState(() => _error = null);
+    try {
+      final s = await _repo.dashboardSummary();
+      final t = await _repo.earningsTrend();
+      final b = await _repo.bookings();
+      if (!mounted) return;
+      setState(() {
+        _summary = s;
+        _trend = t;
+        _requests = b.where((x) => x.status == BookingStatus.requested).toList();
+        _upcoming = b.where((x) => x.status == BookingStatus.confirmed).toList();
+      });
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Could not load dashboard.');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_error != null) {
+      return Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(_error!, style: TextStyle(color: AppColors.textMuted)),
+          const SizedBox(height: 12),
+          OutlinedButton(onPressed: _load, child: const Text('Retry')),
+        ]),
+      );
+    }
     if (_summary == null) return const LoadingView();
     final cur = NumberFormat.compactCurrency(locale: 'en_IN', symbol: '₹', decimalDigits: 1);
     final cols = responsiveValue(context, mobile: 2, tablet: 2, desktop: 4);
