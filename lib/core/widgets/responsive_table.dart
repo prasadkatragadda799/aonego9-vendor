@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../theme/typography.dart';
 import '../responsive/responsive.dart';
 
 class TableColumn {
@@ -62,7 +63,7 @@ class ResponsiveTable extends StatelessWidget {
                   child: Text(
                     c.label.toUpperCase(),
                     textAlign: c.numeric ? TextAlign.right : TextAlign.left,
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.6),
+                    style: AppType.eyebrow(size: 10.5, color: AppColors.textMuted),
                   ),
                 ),
             ],
@@ -102,7 +103,7 @@ class ResponsiveTable extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceAlt,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.border),
       ),
@@ -115,7 +116,7 @@ class ResponsiveTable extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(width: 110, child: Text(columns[c].label, style: TextStyle(color: AppColors.textMuted, fontSize: 12))),
+                  SizedBox(width: 110, child: Text(columns[c].label, style: AppType.body(size: 12, color: AppColors.textMuted))),
                   Expanded(child: cells[c]),
                 ],
               ),
@@ -127,5 +128,12 @@ class ResponsiveTable extends StatelessWidget {
 }
 
 /// Plain text cell helper.
-Widget tcell(String text, {FontWeight weight = FontWeight.w500, Color? color, bool numeric = false}) =>
-    Text(text, style: TextStyle(fontSize: 13.5, fontWeight: weight, color: color ?? AppColors.textPrimary));
+Widget tcell(String text, {FontWeight weight = FontWeight.w500, Color? color, bool numeric = false}) => Text(
+      text,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      textAlign: numeric ? TextAlign.right : TextAlign.left,
+      style: numeric
+          ? AppType.mono(size: 13, weight: weight, color: color ?? AppColors.textPrimary)
+          : AppType.body(size: 13.5, weight: weight, color: color ?? AppColors.textPrimary),
+    );

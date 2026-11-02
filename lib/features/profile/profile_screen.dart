@@ -339,8 +339,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final cfg = VendorSession.config;
     if (_loading) return const LoadingView();
-    return ListView(
-      padding: EdgeInsets.all(responsiveValue(context, mobile: 16, desktop: 28)),
+    return PageBody(
+      onRefresh: _load,
       children: [
         FadeUp(
           child: PageHeader(
@@ -430,9 +430,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _toast(String msg) => ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(msg)));
+  void _toast(String msg) {
+    if (!mounted) return;
+    Toast.info(Toast.of(context), msg);
+  }
 
   Widget _profileDetailsSection(VendorCategoryConfig cfg) {
     return ProfileDetailsSection(
@@ -455,14 +456,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ('Portfolio works', '${_works.length}', Icons.collections_outlined, AppColors.info, '${_works.where((w) => w.featured).length} featured'),
       ('KYC status', _kycVerified ? 'Verified' : 'Pending', Icons.verified_outlined, _kycVerified ? AppColors.success : AppColors.warning, _plan),
     ];
-    final cols = responsiveValue(context, mobile: 2, tablet: 4, desktop: 4);
-    return GridView.count(
-      crossAxisCount: cols,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: responsiveValue(context, mobile: 2.1, tablet: 2.4, desktop: 2.4),
+    return ResponsiveGrid(
+      minTileWidth: 150,
+      spacing: 12,
       children: [
         for (final m in metrics)
           Container(
@@ -475,11 +471,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
               Row(children: [
                 Icon(m.$3, size: 16, color: m.$4),
-                const Spacer(),
-                Text(m.$5, style: AppType.body(size: 11, weight: FontWeight.w700, color: AppColors.success)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(m.$5,
+                      textAlign: TextAlign.right,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppType.body(size: 11, weight: FontWeight.w700, color: AppColors.textMuted)),
+                ),
               ]),
               const SizedBox(height: 8),
-              Text(m.$2, style: AppType.display(size: 21, weight: FontWeight.w600)),
+              Text(m.$2, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppType.display(size: 21, weight: FontWeight.w600)),
               Text(m.$1.toUpperCase(), style: AppType.eyebrow(color: AppColors.textSecondary, size: 9.5)),
             ]),
           ),

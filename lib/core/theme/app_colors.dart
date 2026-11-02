@@ -2,20 +2,32 @@ import 'package:flutter/material.dart';
 
 /// AOneGo9 brand palette — dual theme.
 ///
-/// Part of the AOneGo9 product line. The gold family is byte-identical with
-/// the super-admin and user apps; the neutral ramp is shared with the
-/// super-admin console.
+/// Part of the AOneGo9 product line. These values are the consumer app's
+/// design tokens (`lib/theme/tokens.dart` in aonego9-user-main) mapped onto
+/// the console's role names, so a vendor moving between the marketplace and
+/// their console sees one product: the same saffron action colour, the same
+/// maroon-black night ground and the same warm ivory paper.
+///
+///   user app        console
+///   T.bg         →  bg
+///   T.card       →  surface        (raised cards)
+///   T.surf       →  surfaceAlt     (sunken bands, inputs) in light
+///   T.bdr        →  border
+///   T.cream      →  textPrimary
+///   T.mut        →  textSecondary
+///   T.dim        →  textMuted
+///   T.gold       →  gold           (saffron — the one action colour)
 ///
 /// ── How the theme swap works ─────────────────────────────────────
 /// Every colour is a static GETTER over one mutable [_light] flag rather than
-/// a `const`, which lets the ~290 existing `AppColors.bg` call sites switch
-/// theme without being rewritten to take a BuildContext. [applyBrightness] is
+/// a `const`, which lets the existing `AppColors.bg` call sites switch theme
+/// without being rewritten to take a BuildContext. [applyBrightness] is
 /// called at the root before MaterialApp builds, and the whole tree rebuilds
 /// on toggle, so nothing can read a stale colour.
 ///
 /// ── Contrast ─────────────────────────────────────────────────────
-/// Every text step clears WCAG AA (4.5:1) against bg, surface and surfaceAlt
-/// in both themes. Enforced by test/contrast_test.dart.
+/// Every text step clears WCAG AA (4.5:1) against bg, surface, surfaceAlt and
+/// sidebar in both themes. Enforced by test/contrast_test.dart.
 class AppColors {
   AppColors._();
 
@@ -24,39 +36,51 @@ class AppColors {
   static void applyBrightness(Brightness b) => _light = b == Brightness.light;
   static Color _p(Color dark, Color light) => _light ? light : dark;
 
-  // Brand — the immutable anchor, shared across all three apps.
+  // ── Brand anchors — identical in both themes and across all three apps.
   static const Color brandGold = Color(0xFFC9A86C);
+  static const Color marigold = Color(0xFFF5A623);
+  static const Color maroon = Color(0xFF8C1D2E);
 
-  /// Gold as a UI colour. #C9A86C is ~2:1 on light paper, so the light theme
-  /// uses a deepened gold of the same hue that clears AA as body text.
-  static Color get gold => _p(brandGold, const Color(0xFF7C5E21));
-  static Color get goldLight => _p(const Color(0xFFE3CFA3), const Color(0xFF6B501B));
-  static Color get goldDark => _p(const Color(0xFFA8884A), const Color(0xFF5A4315));
+  /// Literal logo colours, sampled from the AOneGo9 master logo.
+  static const Color logoAmber = Color(0xFFFFC400);
+  static const Color logoCyan = Color(0xFF00BCE0);
+  static Color get logoNeutral => _p(const Color(0xFFFFFFFF), const Color(0xFF15161A));
 
-  // Surfaces — light is warm paper, not clinical white: the gold and the
-  // display serif both sit badly on #FFF.
-  static Color get bg => _p(const Color(0xFF14161C), const Color(0xFFFAF8F3));
-  static Color get surface => _p(const Color(0xFF1C1F27), const Color(0xFFFFFFFF));
-  static Color get surfaceAlt => _p(const Color(0xFF232730), const Color(0xFFF2EEE4));
-  static Color get border => _p(const Color(0xFF2E333F), const Color(0xFFE3DED1));
+  /// The one action colour — saffron. Bright marigold on the night ground, a
+  /// deep saffron on paper (marigold itself is ~2:1 on ivory).
+  static Color get gold => _p(marigold, const Color(0xFF9E4500));
 
-  // Sidebar — deliberately a shade off the page ground in both themes so the
-  // rail reads as a distinct plane rather than a border.
-  static Color get sidebar => _p(const Color(0xFF101218), const Color(0xFFF0EBDF));
+  /// Light: maroon, for emphasis beside saffron. Dark: a paler marigold.
+  static Color get goldLight => _p(const Color(0xFFFFC766), maroon);
+  static Color get goldDark => _p(const Color(0xFFD9821A), const Color(0xFF7A3300));
 
-  // Text
-  static Color get textPrimary => _p(const Color(0xFFF4F5F7), const Color(0xFF1B1913));
-  static Color get textSecondary => _p(const Color(0xFFA5ABB8), const Color(0xFF55514A));
+  // ── Surfaces — warm ivory paper, deep maroon-black night.
+  static Color get bg => _p(const Color(0xFF140A0B), const Color(0xFFFBF6EC));
+  static Color get surface => _p(const Color(0xFF261518), const Color(0xFFFFFFFF));
+  static Color get surfaceAlt => _p(const Color(0xFF2F1B1F), const Color(0xFFF3E8D6));
+  static Color get border => _p(const Color(0xFF3D2428), const Color(0xFFE3D2B6));
 
-  /// Tertiary. Raised on the dark side too: #6E7585 measured 3.6:1 on
-  /// `surface`, so labels set in it were failing AA before this change.
-  static Color get textMuted => _p(const Color(0xFF8A90A0), const Color(0xFF6A6559));
+  /// A stronger hairline for hovered / focused edges.
+  static Color get borderHi => _p(const Color(0xFF59363B), const Color(0xFFC9AD86));
 
-  // Status
-  static Color get success => _p(const Color(0xFF4CAF7D), const Color(0xFF1D6B41));
-  static Color get warning => _p(const Color(0xFFE0A93B), const Color(0xFF8A6410));
-  static Color get danger => _p(const Color(0xFFE86B66), const Color(0xFFA8291D));
+  // Sidebar — a shade off the page ground in both themes so the rail reads as
+  // a distinct plane rather than a border.
+  static Color get sidebar => _p(const Color(0xFF100708), const Color(0xFFF6EEDF));
+
+  // ── Text ramp
+  static Color get textPrimary => _p(const Color(0xFFFBF0E4), const Color(0xFF1F1513));
+  static Color get textSecondary => _p(const Color(0xFFBCA79D), const Color(0xFF5B4743));
+  static Color get textMuted => _p(const Color(0xFFA48F85), const Color(0xFF6A5652));
+
+  // ── Status (as TEXT / icon colours — each clears AA on every surface)
+  static Color get success => _p(const Color(0xFF6AAB88), const Color(0xFF17702F));
+  static Color get warning => _p(const Color(0xFFE8B04A), const Color(0xFF8A5A00));
+  static Color get danger => _p(const Color(0xFFF08C8C), const Color(0xFF9E2A1E));
   static Color get info => _p(const Color(0xFF6BA0EA), const Color(0xFF1F5E8C));
+
+  /// Danger as a FILL (snackbars, destructive buttons). [danger] is tuned for
+  /// text and is too light to carry white copy on the night ground.
+  static Color get dangerFill => _p(const Color(0xFFBE3B3B), const Color(0xFFB33224));
 
   // Soft status backgrounds — a translucent wash of the status colour, so
   // they follow it into the light theme instead of being frozen hexes.
@@ -70,7 +94,7 @@ class AppColors {
   /// of the two candidates actually measures better rather than trusting a
   /// fixed threshold.
   static Color onAccent(Color fill) {
-    const ink = Color(0xFF141209);
+    const ink = Color(0xFF14120E);
     const paper = Color(0xFFF6F2E8);
     return _contrast(ink, fill) >= _contrast(paper, fill) ? ink : paper;
   }
@@ -88,8 +112,9 @@ class AppColors {
   ///
   /// The category pastels sit around 2:1 on paper, so the light theme holds
   /// the hue, lifts saturation so it does not go muddy at low lightness, and
-  /// drops lightness until it reads as a label. Deriving rather than
-  /// hand-listing a second set keeps the two themes from drifting apart.
+  /// drops lightness until it reads as a label. Same derivation the user app
+  /// uses for its category accents, so a category reads in the same tint in
+  /// both products.
   static Color forGround(Color pastel) {
     if (!_light) return pastel;
     final h = HSLColor.fromColor(pastel);
@@ -99,27 +124,35 @@ class AppColors {
         .toColor();
   }
 
-  /// The "premium card" wash used by the subscription and earnings heroes —
-  /// a gold tint bleeding into the raised surface. Hardcoded before, so those
-  /// cards stayed dark on paper while their text flipped to near-black.
   /// Second stop of the card wash — a shade off [surface] so a card reads as
-  /// a lifted plane rather than a flat rectangle. Was a hardcoded dark hex,
-  /// which kept every card dark on paper.
-  static Color get surfaceLift => _p(const Color(0xFF181B22), const Color(0xFFF7F4EC));
+  /// a lifted plane rather than a flat rectangle.
+  static Color get surfaceLift => _p(const Color(0xFF1F1114), const Color(0xFFFDF9F2));
 
   /// Top stop of the sidebar wash.
-  static Color get sidebarLift => _p(const Color(0xFF13151B), const Color(0xFFE9E3D5));
+  static Color get sidebarLift => _p(const Color(0xFF190C0E), const Color(0xFFEFE4D0));
 
+  /// The "premium card" wash used by the subscription and earnings heroes —
+  /// a saffron tint bleeding into the raised surface, as in the user app's
+  /// gradient grounds.
   static List<Color> get premiumWash => _light
-      ? const [Color(0xFFF7EFDD), Color(0xFFFFFFFF)]
-      : const [Color(0xFF2A2410), Color(0xFF1C1F27)];
+      ? const [Color(0xFFFBEBD3), Color(0xFFFFFFFF)]
+      : const [Color(0xFF3A1A06), Color(0xFF261518)];
+
+  /// A ground that stays DARK in both themes, for poster-style media tiles
+  /// that carry light copy over imagery.
+  static const List<Color> posterWash = [Color(0xFF3A0E16), Color(0xFF140A0B)];
+  static const Color posterInk = Color(0xFFF4F1EA);
+
+  /// Scrim over imagery / behind modal sheets.
+  static Color get scrim => _p(const Color(0xCC140A0B), const Color(0x991F1513));
 
   static List<Color> get chartPalette => [
         gold,
         info,
         success,
         warning,
-        _p(const Color(0xFF9B6BD8), const Color(0xFF6A3FA8)),
+        _p(const Color(0xFFB98AE0), const Color(0xFF6A3FA8)),
         _p(const Color(0xFF52C4C0), const Color(0xFF1F7A76)),
+        _p(const Color(0xFFE88AA0), maroon),
       ];
 }

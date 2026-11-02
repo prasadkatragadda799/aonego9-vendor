@@ -6,13 +6,16 @@ import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/typography.dart';
 import '../../core/responsive/responsive.dart';
+import '../../core/utils/launch_util.dart';
 import '../../core/widgets/common.dart';
 import '../../data/models/models.dart';
 import '../../data/repositories/vendor_repository.dart';
 import '../../data/upload_service.dart';
 import '../../core/utils/image_pick_util.dart';
 import '../../data/api/api_errors.dart';
+
 
 /// Subscription & billing — the vendor's plan with AOneGo9.
 ///
@@ -33,6 +36,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   List<SubscriptionRequest> _requests = [];
   PaymentSettings? _payment;
   bool _loading = true;
+  String? _error;
 
   SubscriptionRequest? get _pendingRequest {
     for (final r in _requests) {
@@ -48,20 +52,37 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   Future<void> _load() async {
-    final p = await _repo.plans();
-    final s = await _repo.currentSubscription();
-    final b = await _repo.billingHistory();
-    final pay = await _repo.paymentInfo();
-    final r = await _repo.myRequests();
-    if (!mounted) return;
     setState(() {
-      _plans = p;
-      _sub = s;
-      _billing = b;
-      _payment = pay;
-      _requests = r;
-      _loading = false;
+      _loading = _plans.isEmpty;
+      _error = null;
     });
+    try {
+      // Plans are the page; the rest degrade so one failing endpoint does
+      // not hide the plans a vendor came here to compare.
+      final results = await Future.wait<Object?>([
+        _repo.plans(),
+        _repo.currentSubscription().catchError((_) => null),
+        _repo.billingHistory().catchError((_) => <BillingEntry>[]),
+        _repo.paymentInfo().then<PaymentSettings?>((v) => v).catchError((_) => null),
+        _repo.myRequests().catchError((_) => <SubscriptionRequest>[]),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _plans = results[0] as List<SubscriptionPlan>;
+        _sub = results[1] as VendorSubscription?;
+        _billing = results[2] as List<BillingEntry>;
+        _payment = results[3] as PaymentSettings?;
+        _requests = results[4] as List<SubscriptionRequest>;
+        _loading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = apiErrorMessage(e, fallback: 'Could not load plans.');
+        });
+      }
+    }
   }
 
   Future<void> _choose(SubscriptionPlan p) async {
@@ -84,17 +105,21 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       );
       if (confirmed != true) return;
       if (!mounted) return;
-      final req = await _repo.requestSubscription(p.id, '');
-      await _load();
-      if (!mounted) return;
-      final msg = req.status == 'approved'
-          ? 'You are now on the ${p.name} plan'
-          : 'Request submitted — admin will review shortly';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      final m = Toast.of(context);
+      try {
+        final req = await _repo.requestSubscription(p.id, '');
+        await _load();
+        Toast.ok(m, req.status == 'approved' ? 'You are now on the ${p.name} plan' : 'Request submitted — the desk will review it shortly');
+      } catch (e) {
+        Toast.error(m, apiErrorMessage(e, fallback: 'Could not switch plans.'));
+      }
       return;
     }
 
-    if (_payment == null) return;
+    if (_payment == null || !_payment!.isConfigured) {
+      Toast.error(Toast.of(context), 'Online payment is not set up yet. Contact the AOneGo9 desk from Settings to upgrade.');
+      return;
+    }
     await showDialog<void>(
       context: context,
       builder: (ctx) => _PaymentDialog(plan: p, payment: _payment!, repo: _repo, onSubmitted: _load),
@@ -103,14 +128,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_error != null && _plans.isEmpty) return ErrorView(message: _error!, onRetry: _load);
     if (_loading) return const LoadingView();
-    final cols = responsiveValue(context, mobile: 1, tablet: 3, desktop: 3);
     final pending = _pendingRequest;
+    final rejected = _requests.where((r) => r.status == 'rejected').firstOrNull;
     final showUpgradeBanner = _sub != null &&
         _sub!.price > 0 &&
         _plans.any((p) => p.price >= _sub!.price && p.id != _sub!.planId);
-    return ListView(
-      padding: EdgeInsets.all(responsiveValue(context, mobile: 16, desktop: 28)),
+    return PageBody(
+      onRefresh: _load,
       children: [
         const PageHeader(title: 'Subscription & Billing', subtitle: 'Manage your AOneGo9 plan and invoices'),
         const SizedBox(height: 24),
@@ -118,6 +144,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         if (pending != null) ...[
           const SizedBox(height: 16),
           _pendingCard(pending),
+        ] else if (rejected != null && rejected.createdAt.isAfter(DateTime.now().subtract(const Duration(days: 30)))) ...[
+          const SizedBox(height: 16),
+          InlineNotice(
+            icon: Icons.error_outline,
+            color: AppColors.danger,
+            message: 'Your ${rejected.planName} request was not approved'
+                '${(rejected.adminNote ?? '').trim().isEmpty ? '.' : ': ${rejected.adminNote}'} You can submit a new request below.',
+          ),
         ],
         const SizedBox(height: 24),
         if (showUpgradeBanner) ...[
@@ -126,15 +160,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         ],
         Text('Plans', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 14),
-        GridView.count(
-          crossAxisCount: cols,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 16,
-          crossAxisSpacing: 16,
-          childAspectRatio: responsiveValue(context, mobile: 1.25, tablet: 0.72, desktop: 0.82),
-          children: [for (final p in _plans) _planCard(p, pending: pending != null)],
-        ),
+        if (_plans.isEmpty)
+          const EmptyView(icon: Icons.workspace_premium_outlined, message: 'No plans available right now', detail: 'Plans are being updated — check back shortly.')
+        else
+          ResponsiveGrid(minTileWidth: 250, maxColumns: 3, children: [for (final p in _plans) _planCard(p, pending: pending != null)]),
         const SizedBox(height: 24),
         _billingCard(),
       ],
@@ -206,10 +235,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               StatusChip(label: s.status == 'active' ? 'Active' : s.status, color: AppColors.success),
             ]),
             const SizedBox(height: 8),
-            Text(s.planName, style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.w800, fontSize: 26)),
+            Text(s.planName, style: AppType.display(size: 26, weight: FontWeight.w700, color: AppColors.gold)),
             const SizedBox(height: 4),
             Text(
-              s.price == 0 ? 'Free forever' : '${cur.format(s.price)} / month · renews ${DateFormat('d MMM yyyy').format(s.renewsOn)}',
+              s.price == 0 ? 'Free forever' : '${cur.format(s.price)} · renews ${DateFormat('d MMM yyyy').format(s.renewsOn)}',
               style: TextStyle(color: AppColors.textMuted, fontSize: 12.5),
             ),
           ]),
@@ -235,14 +264,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Text(p.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-            const Spacer(),
+            Expanded(child: Text(p.name, style: AppType.body(size: 16, weight: FontWeight.w700))),
             if (p.recommended) StatusChip(label: 'Popular', color: AppColors.gold),
           ]),
           const SizedBox(height: 10),
           Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
-            Text(p.price == 0 ? 'Free' : cur.format(p.price), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 24)),
-            if (p.price != 0) Text(' / mo', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+            Text(p.price == 0 ? 'Free' : cur.format(p.price), style: AppType.display(size: 24, weight: FontWeight.w700)),
+            if (p.price != 0) Text(p.periodShort, style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
           ]),
           const SizedBox(height: 14),
           for (final f in p.features)
@@ -254,6 +282,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 Expanded(child: Text(f, style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5, height: 1.35))),
               ]),
             ),
+          const Spacer(),
           const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
@@ -274,7 +303,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     final df = DateFormat('d MMM yyyy');
     return SectionCard(
       title: 'Billing History',
-      child: Column(
+      child: _billing.isEmpty
+          ? const EmptyView(icon: Icons.receipt_long_outlined, message: 'No invoices yet', detail: 'Paid plan invoices appear here.')
+          : Column(
         children: [
           for (final b in _billing)
             Padding(
@@ -286,9 +317,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   Text(b.description, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13.5)),
                   Text('${b.id} · ${df.format(b.date)}', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                 ])),
-                Text(cur.format(b.amount), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
-                const SizedBox(width: 12),
-                StatusChip(label: b.status == 'paid' ? 'Paid' : b.status, color: b.status == 'paid' ? AppColors.success : AppColors.warning),
+                Text(cur.format(b.amount), style: AppType.mono(size: 13.5, weight: FontWeight.w700, color: AppColors.textPrimary)),
+                if (!Responsive.isMobile(context)) ...[
+                  const SizedBox(width: 12),
+                  StatusChip(label: b.status == 'paid' ? 'Paid' : b.status, color: b.status == 'paid' ? AppColors.success : AppColors.warning),
+                ],
               ]),
             ),
         ],
@@ -317,19 +350,25 @@ class _PaymentDialogState extends State<_PaymentDialog> {
     final p = widget.payment;
     final plan = widget.plan;
     return 'upi://pay?pa=${p.upiId}&pn=${Uri.encodeComponent(p.payeeName)}'
-        '&am=${plan.price}&cu=INR&tn=${Uri.encodeComponent('AONEGO9 ${plan.name}')}';
+        '&am=${plan.price.toStringAsFixed(2)}&cu=INR&tn=${Uri.encodeComponent('AONEGO9 ${plan.name}')}';
   }
 
 
   Future<void> _pickReceipt() async {
-    final picked = await pickImageFromGallery();
-    if (picked == null) return;
-    if (!mounted) return;
-    setState(() => _imageBytes = picked.bytes);
+    try {
+      final picked = await pickImageFromGallery();
+      if (picked == null || !mounted) return;
+      setState(() => _imageBytes = picked.bytes);
+    } catch (_) {
+      if (mounted) Toast.error(Toast.of(context), 'Could not open the photo picker.');
+    }
   }
 
   Future<void> _submit() async {
     if (_imageBytes == null || _submitting) return;
+    // Captured up front: the dialog is gone by the time the toast shows.
+    final m = Toast.of(context);
+    final nav = Navigator.of(context);
     setState(() => _submitting = true);
     try {
       final url = await UploadService.uploadImage(
@@ -338,19 +377,12 @@ class _PaymentDialogState extends State<_PaymentDialog> {
         folder: 'receipts',
       );
       await widget.repo.requestSubscription(widget.plan.id, url);
-      if (!mounted) return;
-      Navigator.pop(context);
+      nav.pop();
+      Toast.ok(m, "Receipt submitted — you'll be notified once the desk approves it");
       await widget.onSubmitted();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Submitted — you'll be notified once approved")),
-      );
     } catch (e) {
-      if (!mounted) return;
-      setState(() => _submitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(friendlyApiError(e))),
-      );
+      if (mounted) setState(() => _submitting = false);
+      Toast.error(m, friendlyApiError(e));
     }
   }
 
@@ -358,7 +390,6 @@ class _PaymentDialogState extends State<_PaymentDialog> {
   Widget build(BuildContext context) {
     final cur = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
     return AlertDialog(
-      backgroundColor: AppColors.surface,
       title: Text('Subscribe to ${widget.plan.name}'),
       content: SingleChildScrollView(
         child: Column(
@@ -382,7 +413,19 @@ class _PaymentDialogState extends State<_PaymentDialog> {
               child: QrImageView(data: _upiLink, size: 180, backgroundColor: Colors.white),
             ),
             const SizedBox(height: 8),
-            Text(widget.payment.upiId, style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            InkWell(
+              onTap: () => copyToClipboard(context, widget.payment.upiId, label: 'UPI ID copied'),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text(widget.payment.upiId, style: AppType.mono(size: 12.5, color: AppColors.textSecondary)),
+                  const SizedBox(width: 6),
+                  Icon(Icons.copy, size: 14, color: AppColors.textMuted),
+                ]),
+              ),
+            ),
+            if (widget.payment.payeeName.isNotEmpty)
+              Text('Payee: ${widget.payment.payeeName}', style: AppType.body(size: 11.5, color: AppColors.textMuted)),
             const SizedBox(height: 18),
             if (_imageBytes != null) ...[
               ClipRRect(
@@ -404,7 +447,7 @@ class _PaymentDialogState extends State<_PaymentDialog> {
         ElevatedButton(
           onPressed: (_imageBytes == null || _submitting) ? null : _submit,
           child: _submitting
-              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              ? const ButtonSpinner()
               : const Text('Submit for review'),
         ),
       ],

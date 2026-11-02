@@ -1,6 +1,6 @@
 # AOneGo9 — Vendor App
 
-A deploy-ready **Flutter** app for AOneGo9 vendors (talent agencies, photographers, videographers, venues, event services). One codebase renders an adaptive **desktop** (sidebar) and **mobile** (drawer + bottom nav bar) UI. All data comes from an in-memory mock layer structured to swap for a real backend with zero UI changes.
+A deploy-ready **Flutter** app for AOneGo9 vendors (talent agencies, photographers, videographers, venues, event services). One codebase renders an adaptive **desktop** (sidebar) and **mobile** (drawer + bottom nav bar) UI. All data comes from the AOneGo9 FastAPI backend (`/api/v1`), the same one the user app uses.
 
 ---
 
@@ -23,7 +23,7 @@ flutter run -d <device>      # mobile (iOS/Android)
 flutter run -d macos         # desktop
 ```
 
-Login screen has demo credentials pre-filled — press **Sign In** (or toggle to the register flow).
+Sign in with a vendor account, or use **Become a vendor** to register.
 
 ---
 
@@ -113,3 +113,17 @@ console so the two apps feel like one product family. Tokens live in
 
 > This app pairs with **aonego9-superadmin**. Vendors created/approved in the
 > admin console map to the same backend that powers this app.
+
+---
+
+## Production
+
+```bash
+flutter build web --release \
+  --dart-define=API_BASE_URL=https://<your-backend>/api/v1
+```
+
+- Design system matches the user app: saffron/maroon palette, Poppins + Inter, light/dark/system theme (WCAG AA enforced by `test/contrast_test.dart`).
+- `vercel.json` serves the SPA with security headers and no-cache on the unhashed bundle so deploys take effect immediately.
+- Local check of a release build: `python3 -m http.server 8741 --directory build/web`.
+- Payout requests, KYC documents, support messages, password resets and story pitches are sent to the AOneGo9 desk through `POST /browse/leads` (the user app's lead channel) and appear in the Super Admin **Leads & Applications** inbox.

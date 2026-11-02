@@ -6,7 +6,11 @@ class NavItem {
   final IconData icon;
   final String route;
   final String? section;
-  const NavItem(this.label, this.icon, this.route, {this.section});
+  final String? short;
+  const NavItem(this.label, this.icon, this.route, {this.section, this.short});
+
+  /// Label for the mobile bottom bar, where only a word fits.
+  String get shortLabel => short ?? label.split(' ').first;
 }
 
 /// Full vendor navigation, adapted to the signed-in vendor's category so

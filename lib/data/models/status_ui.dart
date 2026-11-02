@@ -12,6 +12,13 @@ class StatusUi {
         BookingStatus.disputed => ('Disputed', AppColors.danger),
       };
 
+  /// Next step a vendor can take on a booking, as (label, target status).
+  static (String, BookingStatus)? nextStep(BookingStatus s) => switch (s) {
+        BookingStatus.confirmed => ('Start job', BookingStatus.inProgress),
+        BookingStatus.inProgress => ('Mark completed', BookingStatus.completed),
+        _ => null,
+      };
+
   static (String, Color) txn(TxnType t) => switch (t) {
         TxnType.earning => ('Earning', AppColors.success),
         TxnType.payout => ('Payout', AppColors.info),
@@ -22,6 +29,7 @@ class StatusUi {
         IconKind.booking => Icons.event_available_outlined,
         IconKind.payment => Icons.payments_outlined,
         IconKind.review => Icons.star_outline,
+        IconKind.message => Icons.chat_bubble_outline,
         IconKind.system => Icons.info_outline,
       };
 
@@ -29,6 +37,7 @@ class StatusUi {
         IconKind.booking => AppColors.success,
         IconKind.payment => AppColors.gold,
         IconKind.review => AppColors.info,
+        IconKind.message => AppColors.gold,
         IconKind.system => AppColors.textSecondary,
       };
 }

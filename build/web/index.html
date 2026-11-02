@@ -1,38 +1,253 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <!--
     If you are serving your web app in a path other than the root, change the
     href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
+    Replaced by the value of the `--base-href` argument to `flutter build`.
   -->
   <base href="/">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#8C1D2E">
+  <meta name="description" content="AOneGo9 Vendor Console — manage your profile, packages, roster, bookings, calendar, earnings and messages.">
+  <meta name="robots" content="noindex, nofollow">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="aonego9_vendor">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="AOneGo9 Vendor">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png?v=2">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <!--
+    ?v=2 busts the favicon cache. Browsers cache favicons in a store separate
+    from the page cache and keep serving the old one through hard reloads, so
+    replacing favicon.png alone left the previous Flutter icon in the tab.
+    Bump this version whenever the icon artwork changes.
+  -->
+  <link rel="icon" type="image/png" sizes="64x64" href="favicon.png?v=2"/>
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/Icon-192.png?v=2"/>
 
-  <title>aonego9_vendor</title>
+  <title>AOneGo9 Vendor Console</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: #FBF6EC;
+      /* Matches the app's own background so there is no white flash on load. */
+    }
+
+    /* ── Branded boot splash ──────────────────────────────────────────
+       Flutter web ships a ~2MB bundle; without this the user stares at an
+       empty page while it downloads. It stays up until Flutter has painted
+       its first frame (not merely mounted), so there is no blank gap
+       between the splash and the app. */
+    #boot {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      box-sizing: border-box;
+      background:
+        radial-gradient(120% 70% at 50% 0%, rgba(245,166,35,.20), transparent 60%),
+        radial-gradient(90% 60% at 50% 100%, rgba(140,29,46,.12), transparent 65%),
+        #FBF6EC;
+      z-index: 9999;
+      transition: opacity .5s ease, visibility .5s ease;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    #boot.done { opacity: 0; visibility: hidden; pointer-events: none; }
+    #boot.done .stage { transform: scale(1.04); }
+
+    #boot .stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: transform .5s ease;
+      animation: rise .6s ease-out both;
+    }
+
+    /* Marigold ring: a slow dashed garland around a solid saffron arc. */
+    #boot .ring {
+      position: relative;
+      width: 92px;
+      height: 92px;
+      margin-bottom: 26px;
+    }
+    #boot .ring svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    #boot .ring .garland { animation: spin 9s linear infinite; transform-origin: 50% 50%; }
+    #boot .ring .arc { animation: spin 1.2s cubic-bezier(.55,.15,.45,.85) infinite; transform-origin: 50% 50%; }
+    #boot .ring .core {
+      position: absolute;
+      inset: 26px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #FFD27A, #F5A623 55%, #C8620A);
+      box-shadow: 0 6px 18px rgba(200,98,10,.35);
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+
+    /* The wordmark and tagline are separate rows with real spacing between
+       them — the tagline used to be pulled up over the letters. */
+    #boot .mark {
+      display: block;
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: -.5px;
+      line-height: 1.1;
+      white-space: nowrap;
+    }
+    #boot .mark .a  { color: #FFC400; }
+    #boot .mark .w  { color: #1F1513; }
+    #boot .mark .g  { color: #00BCE0; }
+    #boot .mark .n  { color: #FFC400; font-style: italic; }
+
+    #boot .tag {
+      display: block;
+      margin-top: 10px;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      /* letter-spacing trails the last glyph; pad it back so the line centres. */
+      padding-left: 4px;
+      color: #5B4743;
+      white-space: nowrap;
+    }
+    #boot .tag em { color: #9E4500; font-style: normal; }
+
+    #boot .bar {
+      width: 168px;
+      height: 3px;
+      margin-top: 28px;
+      background: #EADBC2;
+      overflow: hidden;
+      border-radius: 3px;
+    }
+    #boot .bar::after {
+      content: "";
+      display: block;
+      width: 40%;
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #8C1D2E, #F5A623);
+      animation: sweep 1.15s ease-in-out infinite;
+    }
+
+    #boot .msg {
+      margin-top: 14px;
+      min-height: 16px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: #6A5652;
+      text-align: center;
+      transition: opacity .3s ease;
+    }
+
+
+    /* Consoles follow the OS appearance by default, so the boot splash does
+       too — a vendor on a dark laptop is not flashed an ivory page. */
+    @media (prefers-color-scheme: dark) {
+      html, body { background-color: #140A0B; }
+      #boot {
+        background:
+          radial-gradient(120% 70% at 50% 0%, rgba(245,166,35,.16), transparent 60%),
+          radial-gradient(90% 60% at 50% 100%, rgba(140,29,46,.22), transparent 65%),
+          #140A0B;
+      }
+      #boot .mark .w { color: #FFFFFF; }
+      #boot .tag { color: #BCA79D; }
+      #boot .tag em { color: #F5A623; }
+      #boot .bar { background: #3D2428; }
+      #boot .msg { color: #A48F85; }
+    }
+
+    @keyframes sweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
+    @keyframes spin  { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%, 100% { transform: scale(.92); } 50% { transform: scale(1); } }
+    @keyframes rise  { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    @media (max-width: 360px) {
+      #boot .mark { font-size: 34px; }
+      #boot .tag { letter-spacing: 3px; padding-left: 3px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #boot .stage, #boot .ring .garland, #boot .ring .arc, #boot .ring .core { animation: none; }
+      #boot .bar::after { animation: none; width: 100%; opacity: .6; }
+      #boot, #boot .stage { transition: none; }
+    }
+  </style>
 </head>
 <body>
+  <div id="boot" role="status" aria-live="polite" aria-label="Loading AOneGo9 Vendor Console">
+    <div class="stage">
+      <div class="ring" aria-hidden="true">
+        <svg viewBox="0 0 92 92">
+          <circle class="garland" cx="46" cy="46" r="42" fill="none" stroke="#F5A623" stroke-width="5"
+                  stroke-linecap="round" stroke-dasharray="0.1 11" opacity=".75"/>
+          <circle cx="46" cy="46" r="32" fill="none" stroke="#EADBC2" stroke-width="3"/>
+          <circle class="arc" cx="46" cy="46" r="32" fill="none" stroke="#8C1D2E" stroke-width="3"
+                  stroke-linecap="round" stroke-dasharray="52 200"/>
+        </svg>
+        <div class="core"></div>
+      </div>
+      <div class="mark" aria-hidden="true">
+        <span class="a">A</span><span class="w">o</span><span class="a">n</span><span
+        class="w">e</span><span class="g">G</span><span class="w">o</span><span class="n">9</span>
+      </div>
+      <div class="tag" aria-hidden="true">V<em>E</em>NDOR CONSOL<em>E</em></div>
+      <div class="bar" aria-hidden="true"></div>
+      <div class="msg" id="boot-msg">Opening your console…</div>
+    </div>
+  </div>
+
+  <script>
+    // Keep the splash up until Flutter has painted its first frame. Flutter
+    // fires `flutter-first-frame` on window for that; the DOM check covers
+    // builds that mount without it, and the long timeout is a backstop so a
+    // failed boot can never trap the user behind the overlay.
+    (function () {
+      var boot = document.getElementById('boot');
+      if (!boot) return;
+      var msg = document.getElementById('boot-msg');
+      var lines = ['Opening your console…', 'Loading bookings & calendar…', 'Almost there…'];
+      var i = 0;
+      var ticker = setInterval(function () {
+        if (!msg || i >= lines.length - 1) return;
+        msg.style.opacity = 0;
+        setTimeout(function () { i++; msg.textContent = lines[i]; msg.style.opacity = 1; }, 300);
+      }, 2400);
+      var removed = false;
+      function dismiss() {
+        if (removed) return;
+        removed = true;
+        clearInterval(ticker);
+        // One extra frame so the app's first paint is on screen underneath.
+        requestAnimationFrame(function () {
+          boot.classList.add('done');
+          setTimeout(function () { if (boot.parentNode) boot.parentNode.removeChild(boot); }, 600);
+        });
+      }
+      window.addEventListener('flutter-first-frame', dismiss, { once: true });
+      // Fallback: the view is in the DOM and has had time to paint.
+      var observer = new MutationObserver(function () {
+        if (document.querySelector('flutter-view, flt-glass-pane')) {
+          observer.disconnect();
+          setTimeout(dismiss, 1500);
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      setTimeout(function () { observer.disconnect(); dismiss(); }, 20000);
+    })();
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

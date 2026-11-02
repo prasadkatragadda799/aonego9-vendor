@@ -238,6 +238,23 @@ class VendorSession {
   static String vendorName = 'Vendor';
   static String vendorCity = '';
 
+  /// Account details from `GET /vendors/me`, used by settings, the shell's
+  /// avatar and every request sent to the AOneGo9 desk (so the desk knows
+  /// which vendor is asking without the vendor retyping it).
+  static String vendorId = '';
+  static String contactName = '';
+  static String email = '';
+  static String phone = '';
+  static String avatarUrl = '';
+  static String plan = '';
+  static String approvalStatus = '';
+  static bool kycVerified = false;
+
+  /// Whether the marketplace currently lists this vendor. Pending / rejected
+  /// / suspended vendors can use the console but are not bookable yet, and
+  /// the console says so rather than leaving them guessing.
+  static bool get isLive => approvalStatus.isEmpty || approvalStatus == 'approved';
+
   static String get profileSubtitle {
     final city = vendorCity.trim();
     return city.isEmpty ? config.label : '${config.label} · $city';
@@ -248,9 +265,23 @@ class VendorSession {
     final name = (profile['name'] as String?)?.trim() ?? '';
     vendorName = company.isNotEmpty ? company : (name.isNotEmpty ? name : 'Vendor');
     vendorCity = (profile['city'] as String?)?.trim() ?? '';
+    contactName = name;
+    String str(String k) => profile[k] == null ? '' : '${profile[k]}'.trim();
+    if (profile.containsKey('id')) vendorId = str('id');
+    if (profile.containsKey('email')) email = str('email');
+    if (profile.containsKey('phone')) phone = str('phone');
+    if (profile.containsKey('avatar_url')) avatarUrl = str('avatar_url');
+    if (profile.containsKey('plan')) plan = str('plan');
+    if (profile.containsKey('status')) approvalStatus = str('status').toLowerCase();
+    if (profile.containsKey('kyc_verified')) kycVerified = profile['kyc_verified'] == true;
     setCategoryFromServer((profile['category'] as String?)?.trim() ?? '');
     _profileLoaded = true;
+    changes.value++;
   }
+
+  /// Ticks when the profile changes, so the shell header (name, avatar)
+  /// refreshes after a save without a reload.
+  static final ValueNotifier<int> changes = ValueNotifier(0);
 
   /// Maps whatever the backend stores (label, id or free text) → console
   /// category, via the marketplace taxonomy.
@@ -276,6 +307,14 @@ class VendorSession {
     category = VendorCategory.talent;
     vendorName = 'Vendor';
     vendorCity = '';
+    vendorId = '';
+    contactName = '';
+    email = '';
+    phone = '';
+    avatarUrl = '';
+    plan = '';
+    approvalStatus = '';
+    kycVerified = false;
     _profileLoaded = false;
   }
 

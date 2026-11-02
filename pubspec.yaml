@@ -20,6 +20,8 @@ dependencies:
   image_picker: ^1.1.2
   file_picker: ^8.1.6
   qr_flutter: ^4.1.0
+  # Call / WhatsApp / email a client, open receipts and marketplace links.
+  url_launcher: ^6.3.1
 
   # SDK package, not a pub.dev one — needs the sdk source.
   flutter_web_plugins:
@@ -33,5 +35,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  # assets:
-  #   - assets/
+  assets:
+    # Brand artwork shared with the user app — see lib/core/widgets/brand.dart.
+    - assets/brand/aonego9_logo.png
+    - assets/brand/aonego9_lockup.png

@@ -3,17 +3,22 @@ import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 /// ─────────────────────────────────────────────────────────────
-/// EDITORIAL TYPOGRAPHY for the console.
+/// TYPOGRAPHY for the console — the user app's type stack.
 ///
-/// Brings the AOneGo9 consumer app's Fraunces (serif display) + Syne
-/// (sans body) pairing into the vendor console so the three apps read as
-/// one product line, while keeping Syne's clean density for data-heavy
-/// screens. See ../../../../DESIGN_TOKENS.md (§5 Typography).
+/// The marketplace draws its display role in Poppins and its body and
+/// metadata roles in Inter (see `F` in aonego9-user-main/lib/theme/tokens.dart).
+/// The console uses the same faces so the three apps read as one product
+/// line. Role names (`display`, `body`, `eyebrow`) are kept so no call site
+/// changes.
 /// ─────────────────────────────────────────────────────────────
 class AppType {
   AppType._();
 
-  /// Fraunces — serif display for hero numbers, page titles, the wordmark.
+  /// Poppins — display for hero numbers, page titles, card titles.
+  ///
+  /// Call sites were tuned for a compact serif. Poppins has tall ascenders,
+  /// so tight line-heights and negative tracking would make wrapped headings
+  /// collide — floor and soften them here, exactly as the user app does.
   static TextStyle display({
     double size = 28,
     FontWeight weight = FontWeight.w600,
@@ -22,16 +27,16 @@ class AppType {
     double letterSpacing = -0.5,
     FontStyle? fontStyle,
   }) =>
-      GoogleFonts.fraunces(
+      GoogleFonts.poppins(
         fontSize: size,
         fontWeight: weight,
         color: color ?? AppColors.textPrimary,
-        height: height,
-        letterSpacing: letterSpacing,
+        height: height == null ? null : (height < 1.2 ? 1.2 : height),
+        letterSpacing: letterSpacing < 0 ? letterSpacing * .35 : letterSpacing,
         fontStyle: fontStyle,
       );
 
-  /// Syne — sans body for labels, nav, table text.
+  /// Inter — body for labels, nav, table text.
   static TextStyle body({
     double size = 13,
     FontWeight weight = FontWeight.w500,
@@ -39,12 +44,26 @@ class AppType {
     double? height,
     double? letterSpacing,
   }) =>
-      GoogleFonts.syne(
+      GoogleFonts.inter(
         fontSize: size,
         fontWeight: weight,
         color: color ?? AppColors.textPrimary,
         height: height,
         letterSpacing: letterSpacing,
+      );
+
+  /// Tabular Inter for amounts, IDs and timestamps, so columns of figures
+  /// line up.
+  static TextStyle mono({
+    double size = 12,
+    FontWeight weight = FontWeight.w500,
+    Color? color,
+  }) =>
+      GoogleFonts.inter(
+        fontSize: size,
+        fontWeight: weight,
+        color: color ?? AppColors.textMuted,
+        fontFeatures: const [FontFeature.tabularFigures()],
       );
 
   /// Tiny uppercase tracked eyebrow / section label.
@@ -53,14 +72,13 @@ class AppType {
     double size = 10,
     FontWeight weight = FontWeight.w700,
   }) =>
-      GoogleFonts.syne(
+      GoogleFonts.inter(
         fontSize: size,
         fontWeight: weight,
         color: color ?? AppColors.textMuted,
-        letterSpacing: 2,
+        letterSpacing: 1.8,
       );
 
-  /// Full Syne text theme used as the app's base body type.
-  static TextTheme textTheme(TextTheme base) =>
-      GoogleFonts.syneTextTheme(base);
+  /// Full Inter text theme used as the app's base body type.
+  static TextTheme textTheme(TextTheme base) => GoogleFonts.interTextTheme(base);
 }

@@ -1,12 +1,12 @@
 {
-    "name": "aonego9_vendor",
-    "short_name": "aonego9_vendor",
+    "name": "AOneGo9 Vendor Console",
+    "short_name": "AOneGo9 Vendor",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#FBF6EC",
+    "theme_color": "#8C1D2E",
+    "description": "Manage your AOneGo9 profile, packages, roster, bookings, calendar, earnings and messages.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {
