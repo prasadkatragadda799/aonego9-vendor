@@ -42,6 +42,29 @@ void main() {
       expect(n.markRead().unread, isFalse);
     });
 
+    test('chat alerts open Messages', () {
+      final n = NotificationItem.fromJson({'id': 'n', 'kind': 'system', 'title': 'New message from Meera'});
+      expect(n.kind, IconKind.message);
+      expect(NotificationItem.fromJson({'id': 'n', 'kind': 'system', 'title': 'Welcome'}).kind, IconKind.system);
+    });
+
+    test('legacy phone-in-location becomes the client phone', () {
+      final b = VendorBooking.fromJson({'id': 'B1', 'location': '+91 98765 43210', 'date': '2026-12-20'});
+      expect(b.location, '');
+      expect(b.clientPhone, '+91 98765 43210');
+      final c = VendorBooking.fromJson({'id': 'B2', 'location': 'Bandra, Mumbai', 'client_phone': '9876543210', 'date': '2026-12-20'});
+      expect(c.location, 'Bandra, Mumbai');
+      expect(c.clientPhone, '9876543210');
+    });
+
+    test('booking quote copy keeps the rest', () {
+      final b = VendorBooking.fromJson({'id': 'B1', 'status': 'requested', 'amount': 0, 'date': '2026-12-20'});
+      final q = b.copyWith(amount: 40000);
+      expect(q.amount, 40000);
+      expect(q.status, b.status);
+      expect(q.copyWith(status: BookingStatus.confirmed).amount, 40000);
+    });
+
     test('plan period suffix', () {
       expect(SubscriptionPlan.fromJson({'id': 'p', 'price': 0}).periodShort, '');
       expect(SubscriptionPlan.fromJson({'id': 'p', 'price': 999, 'period': 'per month'}).periodShort, ' / mo');

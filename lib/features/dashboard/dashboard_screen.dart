@@ -29,7 +29,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final Set<String> _busy = {};
 
   static final _cur = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
-  static final _compact = NumberFormat.compactCurrency(locale: 'en_IN', symbol: '₹', decimalDigits: 1);
 
   @override
   void initState() {
@@ -121,14 +120,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final cards = <Widget>[
       StatCard(
         label: 'Total earned',
-        value: _compact.format(s['monthEarnings'] ?? 0),
+        value: money(s['monthEarnings'] ?? 0),
         icon: Icons.account_balance_wallet_outlined,
         color: AppColors.gold,
         onTap: () => context.go('/earnings'),
       ),
       StatCard(
         label: 'Pending payout',
-        value: _compact.format(s['pendingPayout'] ?? 0),
+        value: money(s['pendingPayout'] ?? 0),
         icon: Icons.schedule,
         color: AppColors.warning,
         onTap: () => context.go('/earnings'),

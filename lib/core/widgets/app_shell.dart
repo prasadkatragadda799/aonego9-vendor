@@ -12,6 +12,7 @@ import '../routing/nav_items.dart';
 import '../category/vendor_category.dart';
 import '../widgets/brand.dart';
 import '../widgets/common.dart';
+import '../../data/api/api_client.dart';
 import '../../data/repositories/vendor_repository.dart';
 
 /// Live counts for the shell — the bell's unread badge. Refreshed on every
@@ -24,6 +25,12 @@ class ShellBadges {
   static DateTime _last = DateTime.fromMillisecondsSinceEpoch(0);
 
   static Future<void> refresh({bool force = false}) async {
+    // The session ended (sign-out or expiry): stop polling rather than keep
+    // calling the API from the sign-in page.
+    if (!await ApiClient.isLoggedIn()) {
+      stop();
+      return;
+    }
     final now = DateTime.now();
     if (!force && now.difference(_last) < const Duration(seconds: 20)) return;
     _last = now;
@@ -32,13 +39,14 @@ class ShellBadges {
 
   static void start() {
     _timer ??= Timer.periodic(const Duration(seconds: 60), (_) => refresh(force: true));
-    refresh();
+    refresh(force: true);
   }
 
   static void stop() {
     _timer?.cancel();
     _timer = null;
     unread.value = 0;
+    _last = DateTime.fromMillisecondsSinceEpoch(0);
   }
 }
 
@@ -61,6 +69,7 @@ class _AppShellState extends State<AppShell> {
     super.initState();
     ShellBadges.start();
   }
+
 
   @override
   void didUpdateWidget(covariant AppShell old) {
@@ -232,7 +241,12 @@ class _ApprovalBanner extends StatelessWidget {
   const _ApprovalBanner();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ValueListenableBuilder<int>(
+        valueListenable: VendorSession.changes,
+        builder: (context, _, __) => VendorSession.isLive ? const SizedBox.shrink() : _banner(context),
+      );
+
+  Widget _banner(BuildContext context) {
     final s = VendorSession.approvalStatus;
     final (msg, color) = switch (s) {
       'pending' => (
@@ -610,6 +624,15 @@ class _AccountMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Listens itself: the phone app bar builds this as a const widget, which
+    // a parent rebuild never refreshes, so it kept the placeholder name.
+    return ValueListenableBuilder<int>(
+      valueListenable: VendorSession.changes,
+      builder: (context, _, __) => _menu(context),
+    );
+  }
+
+  Widget _menu(BuildContext context) {
     final avatar = InitialsAvatar(name: VendorSession.vendorName, size: compact ? 32 : 36, imageUrl: VendorSession.avatarUrl);
     return PopupMenuButton<String>(
       tooltip: 'Account',

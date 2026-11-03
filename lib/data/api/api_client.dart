@@ -238,6 +238,22 @@ class ApiClient {
         .toList();
   }
 
+  /// Every page of a paginated list endpoint (`?page=&page_size=`). The
+  /// backend caps a page at 100 rows and defaults to 20, so a plain GET
+  /// silently showed only the first 20 bookings / reviews / transactions.
+  static Future<List<Map<String, dynamic>>> getAllPages(String path, {int pageSize = 100, int maxPages = 50}) async {
+    final out = <Map<String, dynamic>>[];
+    for (var page = 1; page <= maxPages; page++) {
+      final sep = path.contains('?') ? '&' : '?';
+      final data = await get('$path${sep}page=$page&page_size=$pageSize');
+      final items = asList(data);
+      out.addAll(items);
+      final total = data is Map ? (data['total'] as num?)?.toInt() : null;
+      if (items.length < pageSize || (total != null && out.length >= total)) break;
+    }
+    return out;
+  }
+
   /// A JSON object payload, or an empty map for anything else.
   static Map<String, dynamic> asMap(dynamic data) =>
       data is Map ? data.cast<String, dynamic>() : <String, dynamic>{};

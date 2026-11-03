@@ -98,7 +98,7 @@ class VendorRepository {
 
   // POST /api/v1/vendors/me/packages
   Future<ServicePackage> createService(ServicePackage pkg) async {
-    final body = pkg.toJson()..remove('id');
+    final body = pkg.toJson();
     return ServicePackage.fromJson(ApiClient.asMap(await ApiClient.post('/vendors/me/packages', body)));
   }
 
@@ -124,7 +124,7 @@ class VendorRepository {
 
   // POST /api/v1/vendors/me/roster
   Future<TalentMember> addTalent(TalentMember member) async {
-    final body = member.toJson()..remove('id');
+    final body = member.toJson();
     return TalentMember.fromJson(ApiClient.asMap(await ApiClient.post('/vendors/me/roster', body)));
   }
 
@@ -146,7 +146,7 @@ class VendorRepository {
   // GET /api/v1/bookings/vendor
   Future<List<VendorBooking>> bookings({String? status}) async {
     final q = status != null ? '?status=${Uri.encodeQueryComponent(status)}' : '';
-    final list = ApiClient.asList(await ApiClient.get('/bookings/vendor$q')).map(VendorBooking.fromJson).toList();
+    final list = (await ApiClient.getAllPages('/bookings/vendor$q')).map(VendorBooking.fromJson).toList();
     // Soonest first — what a vendor needs to act on next.
     list.sort((a, b) => a.date.compareTo(b.date));
     return list;
@@ -164,11 +164,16 @@ class VendorRepository {
     await ApiClient.put('/bookings/$id/status', {'status': status.name});
   }
 
+  // PUT /api/v1/bookings/{id}/quote — price an inquiry (they arrive at ₹0).
+  Future<void> setQuote(String id, double amount) async {
+    await ApiClient.put('/bookings/$id/quote', {'amount': amount});
+  }
+
   // ── Earnings ──────────────────────────────────────────────────
 
   // GET /api/v1/payments/earnings
   Future<List<EarningTxn>> earnings() async {
-    final list = ApiClient.asList(await ApiClient.get('/payments/earnings')).map(EarningTxn.fromJson).toList();
+    final list = (await ApiClient.getAllPages('/payments/earnings')).map(EarningTxn.fromJson).toList();
     list.sort((a, b) => b.date.compareTo(a.date));
     return list;
   }
@@ -177,7 +182,7 @@ class VendorRepository {
 
   // GET /api/v1/reviews/vendor
   Future<List<VendorReview>> reviews() async {
-    final list = ApiClient.asList(await ApiClient.get('/reviews/vendor')).map(VendorReview.fromJson).toList();
+    final list = (await ApiClient.getAllPages('/reviews/vendor')).map(VendorReview.fromJson).toList();
     list.sort((a, b) => b.date.compareTo(a.date));
     return list;
   }
@@ -365,8 +370,10 @@ class VendorRepository {
       'category': VendorSession.config.label,
       ...extra,
     };
+    // Sent WITH the vendor's token: the backend takes vendor_id from the
+    // token, not the body, so the desk can trust who is asking.
     try {
-      await ApiClient.post('/browse/leads', body, auth: false);
+      await ApiClient.post('/browse/leads', body);
       return;
     } on ApiException catch (e) {
       if (!e.isMissingRoute) rethrow;

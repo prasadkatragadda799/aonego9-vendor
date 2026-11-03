@@ -83,14 +83,13 @@ class ServicePackage {
         description: _str(j['description']),
       );
 
+  /// Backend field names (ServicePackageCreate / Update).
   Map<String, dynamic> toJson() => {
-        'id': id,
         'title': title,
         'category': category,
         'price': price,
         'unit': unit,
         'active': active,
-        'bookingsCount': bookingsCount,
         'description': description,
       };
 
@@ -132,9 +131,11 @@ class TalentMember {
         shoots: _int(_pick(j, ['shoots', 'jobs', 'jobs_done'])),
       );
 
+  /// Backend field names (TalentMemberCreate / Update). The old camelCase
+  /// `dayRate` was silently dropped, so every day rate saved as 0.
   Map<String, dynamic> toJson() => {
-        'id': id, 'name': name, 'role': role, 'city': city,
-        'dayRate': dayRate, 'rating': rating, 'available': available, 'shoots': shoots,
+        'name': name, 'role': role, 'city': city,
+        'day_rate': dayRate, 'rating': rating, 'available': available, 'shoots': shoots,
       };
 
   TalentMember copyWith({String? name, String? role, String? city, double? dayRate, bool? available}) => TalentMember(
@@ -178,6 +179,14 @@ class VendorBooking {
 
   factory VendorBooking.fromJson(Map<String, dynamic> j) {
     final ref = _str(_pick(j, ['inquiry_ref', 'inquiryRef']));
+    // Older inquiries stored the client's phone in `location`; show it as the
+    // phone rather than as a place.
+    var location = _str(_pick(j, ['location', 'city']));
+    var phone = _str(_pick(j, ['client_phone', 'phone']));
+    if (RegExp(r'^\+?[\d\s()-]{7,}$').hasMatch(location)) {
+      if (phone.isEmpty) phone = location;
+      location = '';
+    }
     return VendorBooking(
       id: _str(j['id']),
       clientName: _str(_pick(j, ['client_name', 'clientName', 'name'])),
@@ -185,13 +194,13 @@ class VendorBooking {
       date: _date(_pick(j, ['date', 'event_date'])),
       amount: _num(j['amount']),
       status: _fromStr(BookingStatus.values, j['status'], BookingStatus.requested),
-      location: _str(_pick(j, ['location', 'city'])),
+      location: location,
       notes: _str(_pick(j, ['notes', 'message'])),
       source: _fromStr(BookingSource.values, j['source'], ref.isEmpty ? BookingSource.direct : BookingSource.inquiry),
       inquiryRef: ref.isEmpty ? null : ref,
       advancePaid: _num(_pick(j, ['advance_paid', 'advancePaid'])),
       clientEmail: _str(_pick(j, ['client_email', 'email'])),
-      clientPhone: _str(_pick(j, ['client_phone', 'phone'])),
+      clientPhone: phone,
     );
   }
 
@@ -201,8 +210,8 @@ class VendorBooking {
         'source': _name(source), 'inquiryRef': inquiryRef, 'advancePaid': advancePaid,
       };
 
-  VendorBooking copyWith({BookingStatus? status}) => VendorBooking(
-        id: id, clientName: clientName, service: service, date: date, amount: amount,
+  VendorBooking copyWith({BookingStatus? status, double? amount}) => VendorBooking(
+        id: id, clientName: clientName, service: service, date: date, amount: amount ?? this.amount,
         status: status ?? this.status, location: location, notes: notes,
         source: source, inquiryRef: inquiryRef, advancePaid: advancePaid,
         clientEmail: clientEmail, clientPhone: clientPhone,
@@ -343,6 +352,8 @@ class NotificationItem {
           'payment' || 'payout' || 'subscription' => IconKind.payment,
           'review' => IconKind.review,
           'message' => IconKind.message,
+          // The API has no message kind; chat alerts arrive as system ones.
+          _ when _str(j['title']).toLowerCase().startsWith('new message') => IconKind.message,
           _ => IconKind.system,
         },
         time: _date(j['created_at']),

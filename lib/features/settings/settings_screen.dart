@@ -194,8 +194,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _kv('Email', VendorSession.email),
         _kv('Phone', VendorSession.phone),
         _kv('Plan', VendorSession.plan.isEmpty ? 'Free' : VendorSession.plan),
-        if (_profile['created_at'] != null)
-          _kv('Member since', DateFormat('MMMM yyyy').format(DateTime.tryParse('${_profile['created_at']}') ?? DateTime.now())),
+        if ((_profile['joined_at'] ?? _profile['created_at']) != null)
+          _kv('Member since',
+              DateFormat('MMMM yyyy').format(DateTime.tryParse('${_profile['joined_at'] ?? _profile['created_at']}') ?? DateTime.now())),
         const SizedBox(height: 10),
         Wrap(spacing: 10, runSpacing: 10, children: [
           OutlinedButton.icon(onPressed: () => context.go('/profile'), icon: const Icon(Icons.edit_outlined, size: 16), label: const Text('Edit profile')),

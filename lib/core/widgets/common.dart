@@ -1,3 +1,4 @@
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/theme_mode_store.dart';
@@ -622,6 +623,11 @@ class ResponsiveGrid extends StatelessWidget {
       final w = c.maxWidth;
       var cols = ((w + spacing) / (minTileWidth + spacing)).floor().clamp(1, maxColumns);
       if (children.length < cols) cols = children.length.clamp(1, maxColumns);
+      // Prefer balanced rows: four cards as 2 + 2 rather than 3 + an orphan.
+      final n = children.length;
+      while (cols > 2 && n % cols != 0 && n % (cols - 1) == 0) {
+        cols--;
+      }
       final tileW = (w - spacing * (cols - 1)) / cols;
       final rows = <Widget>[];
       for (var i = 0; i < children.length; i += cols) {
@@ -1006,4 +1012,11 @@ class ThemeCycleButton extends StatelessWidget {
       },
     );
   }
+}
+
+/// Indian-rupee amount for stat tiles: compact above ₹1,000 (₹4.5L, ₹1.2Cr),
+/// exact below it — the compact format alone rendered zero as "₹0.0".
+String money(num v) {
+  if (v.abs() < 1000) return NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0).format(v);
+  return NumberFormat.compactCurrency(locale: 'en_IN', symbol: '₹', decimalDigits: 1).format(v);
 }
