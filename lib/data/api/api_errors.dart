@@ -58,8 +58,9 @@ String friendlyApiError(Object e) {
     if (e.statusCode == 401) {
       return 'Session expired — please log in again and retry the upload.';
     }
-    if (e.statusCode == 503 && e.message.contains('not configured')) {
-      return 'Image uploads are not configured on the server yet. Ask the AOneGo9 desk to enable them.';
+    if (e.statusCode == 503 &&
+        (e.message.contains('PUBLIC_API_BASE_URL') || e.message.contains('not configured'))) {
+      return 'Image uploads need PUBLIC_API_BASE_URL on the backend (your Render service URL). Redeploy after setting it.';
     }
     if (e.statusCode == 502 || e.statusCode == 503) {
       return 'Image upload failed on the server — please try again shortly.';

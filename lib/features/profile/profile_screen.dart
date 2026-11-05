@@ -389,7 +389,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Photo uploads are disabled on the backend. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET on Render, redeploy, then refresh this page.',
+                  'Photo uploads are disabled on the backend. Set PUBLIC_API_BASE_URL to your Render backend URL, redeploy, then refresh this page.',
                   style: AppType.body(size: 12.5, color: AppColors.warning, height: 1.45),
                 ),
               ),

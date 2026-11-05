@@ -67,7 +67,7 @@ class ApiClient {
 
   static Future<bool> isLoggedIn() async => (await getAccessToken())?.isNotEmpty == true;
 
-  /// GET /health — whether Cloudinary uploads are enabled on the backend.
+  /// GET /health — whether Postgres image uploads are enabled on the backend.
   /// Unknown (unreachable, no flag) is treated as enabled so a transient
   /// health failure never hides the upload controls.
   static Future<bool> uploadsConfigured() async {
